@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自律追踪 | Discipline Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="manifest" href='data:application/manifest+json,{"name":"自律追踪","short_name":"自律","start_url":"/","display":"standalone","background_color":"#0f172a","theme_color":"#00B894"}'>
+    <style>
+        :root {
+            --primary: #00B894;
+            --primary-dark: #009B7D;
+            --primary-light: #5FDDC3;
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --accent: #FF6B35;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+        * { -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        [data-theme="dark"] .card { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        [data-theme="dark"] .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px; border-radius: 12px; cursor: pointer;
+            transition: all 0.2s; color: var(--text-secondary);
+            font-size: 14px; font-weight: 500; text-decoration: none;
+        }
+        .nav-item:hover { background: var(--primary); color: white; }
+        .nav-item.active { background: var(--primary); color: white; }
+        .nav-item .icon { font-size: 20px; width: 24px; text-align: center; }
+
+        .progress-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+        .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+        .checkin-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 2px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; transition: all 0.3s; flex-shrink: 0;
+            background: transparent;
+        }
+        .checkin-btn:hover { border-color: var(--primary); transform: scale(1.05); }
+        .checkin-btn.checked { background: var(--primary); border-color: var(--primary); color: white; }
+        .checkin-btn.checked::after { content: '✓'; font-size: 20px; }
+
+        .flame { animation: flameFlicker 0.8s ease-in-out infinite alternate; }
+        @keyframes flameFlicker { 0%{transform:scale(1);} 100%{transform:scale(1.1);} }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 50;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+        .modal {
+            background: var(--card); border-radius: 20px; padding: 24px;
+            max-width: 500px; width: 100%; max-height: 85vh; overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+        @keyframes slideUp { from{transform:translateY(30px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+
+        input, textarea, select {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 14px; color: var(--text); font-size: 14px; width: 100%; outline: none;
+            transition: border 0.2s; box-sizing: border-box;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+
+        .btn {
+            padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+            font-size: 14px; font-weight: 600; transition: all 0.2s; display: inline-flex;
+            align-items: center; gap: 8px; justify-content: center;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: var(--border); color: var(--text); }
+        .btn-secondary:hover { opacity: 0.8; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        .heatmap-cell { width: 12px; height: 12px; border-radius: 2px; }
+
+        .tag {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 500; margin: 2px;
+        }
+
+        .mood-btn {
+            font-size: 28px; cursor: pointer; transition: transform 0.2s;
+            width: 48px; height: 48px; border-radius: 50%; display: inline-flex;
+            align-items: center; justify-content: center; border: 2px solid transparent;
+            background: transparent;
+        }
+        .mood-btn:hover { transform: scale(1.15); }
+        .mood-btn.selected { border-color: var(--primary); transform: scale(1.15); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+        .fade-enter { animation: fadeInUp 0.3s; }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+
+        .timeline-item { position: relative; padding-left: 28px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: 7px; top: 6px;
+            width: 8px; height: 8px; border-radius: 50%; background: var(--primary);
+        }
+        .timeline-item::after {
+            content: ''; position: absolute; left: 10px; top: 18px; bottom: -8px;
+            width: 2px; background: var(--border);
+        }
+        .timeline-item:last-child::after { display: none; }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--text); color: var(--bg); padding: 12px 24px;
+            border-radius: 12px; font-size: 14px; z-index: 100;
+            animation: toastIn 0.3s; white-space: nowrap;
+        }
+        @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+
+        .particle {
+            position: fixed; width: 8px; height: 8px; border-radius: 50%;
+            pointer-events: none; z-index: 200;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; z-index: 60; transition: left 0.3s; }
+            .sidebar.open { left: 0; }
+            .main-content { margin-left: 0 !important; }
+            .mobile-header { display: flex !important; }
+        }
+        .mobile-header { display: none; }
+
+        .glass {
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.8);
+        }
+        [data-theme="dark"] .glass { background: rgba(30,41,59,0.8); }
+
+        .habit-card { transition: transform 0.2s; }
+        .habit-card:active { transform: scale(0.98); }
+
+        .circle-progress { transform: rotate(-90deg); }
+        .circle-progress circle { transition: stroke-dashoffset 0.5s ease; }
+
+        .insight-card {
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px; border-radius: 8px;
+            background: var(--bg); margin-bottom: 8px;
+        }
+        [data-theme="dark"] .insight-card { background: rgba(255,255,255,0.03); }
+    </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ===================== 工具函数 =====================
+const $ = (sel, parent=document) => parent.querySelector(sel);
+const $$ = (sel, parent=document) => [...parent.querySelectorAll(sel)];
+
+const KEYS = {
+    HABITS: 'discipline_habits',
+    CHECKINS: 'discipline_checkins',
+    RECORDS: 'discipline_records',
+    JOURNALS: 'discipline_journals',
+    GOALS: 'discipline_goals',
+    SETTINGS: 'discipline_settings',
+};
+
+const loadData = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
+const saveData = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const formatDate = (d) => {
+    if (typeof d === 'string') d = new Date(d);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const formatDateCN = (d) => {
+    if (typeof d === 'string') d = new Date(d);
+    const days = ['日','一','二','三','四','五','六'];
+    return `${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;
+};
+
+const ICONS = ['🌅','📚','🏃','💧','🧘','💪','🥗','😴','✍️','🎸','🎨','💻','🌱','⏰','🧹','💊','🚭','📵','📖','🏋️','🚴','🏊','🥦','🛏️'];
+const COLORS = ['#00B894','#4A90D9','#FF6B35','#9B59B6','#F39C12','#1ABC9C','#E74C3C','#3498DB','#2ECC71','#F1C40F','#E91E63','#00BCD4'];
+const TAGS = ['运动','学习','工作','阅读','生活','娱乐','冥想','健康','社交','家务','休息','其他'];
+
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+function celebrate(x, y) {
+    const colors = ['#00B894','#FF6B35','#F39C12','#4A90D9','#9B59B6'];
+    for (let i = 0; i < 12; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.background = colors[i % colors.length];
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        document.body.appendChild(p);
+        const angle = (Math.PI * 2 * i) / 12;
+        const dist = 60 + Math.random() * 40;
+        p.animate([
+            { transform: 'translate(0,0) scale(1)', opacity: 1 },
+            { transform: `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px) scale(0)`, opacity: 0 }
+        ], { duration: 600, easing: 'ease-out' });
+        setTimeout(() => p.remove(), 600);
+    }
+}
+
+// ===================== 全局状态 =====================
+const state = {
+    currentView: 'dashboard',
+    currentDate: todayStr(),
+    habits: loadData(KEYS.HABITS),
+    checkins: loadData(KEYS.CHECKINS),
+    records: loadData(KEYS.RECORDS),
+    journals: loadData(KEYS.JOURNALS),
+    goals: loadData(KEYS.GOALS),
+    settings: Object.assign({ theme: 'light', userName: '' }, loadData(KEYS.SETTINGS)[0] || {}),
+};
+
+function persist(key) { saveData(key, state[key.replace('s','')] || state[key]); }
+function saveHabits() { saveData(KEYS.HABITS, state.habits); }
+function saveCheckins() { saveData(KEYS.CHECKINS, state.checkins); }
+function saveRecords() { saveData(KEYS.RECORDS, state.records); }
+function saveJournals() { saveData(KEYS.JOURNALS, state.journals); }
+function saveGoals() { saveData(KEYS.GOALS, state.goals); }
+function saveSettings() { saveData(KEYS.SETTINGS, [state.settings]); }
+
+// ===================== 数据操作 =====================
+const api = {
+    getTodayCheckins(date = state.currentDate) {
+        return state.checkins.filter(c => c.date === date);
+    },
+    isHabitCheckedToday(habitId, date = state.currentDate) {
+        return state.checkins.some(c => c.habitId === habitId && c.date === date);
+    },
+    getCheckinValue(habitId, date = state.currentDate) {
+        const c = state.checkins.find(c => c.habitId === habitId && c.date === date);
+        return c ? c.value : null;
+    },
+    toggleCheckin(habitId, date = state.currentDate) {
+        const idx = state.checkins.findIndex(c => c.habitId === habitId && c.date === date);
+        if (idx >= 0) {
+            state.checkins.splice(idx, 1);
+        } else {
+            state.checkins.push({ id: `c${Date.now()}`, habitId, date, value: true, createdAt: new Date().toISOString() });
+        }
+        saveCheckins();
+    },
+    setCheckinValue(habitId, value, date = state.currentDate) {
+        const idx = state.checkins.findIndex(c => c.habitId === habitId && c.date === date);
+        if (idx >= 0) {
+            if (value === 0 || value === false) {
+                state.checkins.splice(idx, 1);
+            } else {
+                state.checkins[idx].value = value;
+            }
+        } else if (value > 0) {
+            state.checkins.push({ id: `c${Date.now()}`, habitId, date, value, createdAt: new Date().toISOString() });
+        }
+        saveCheckins();
+    },
+    getStreak(habitId) {
+        let streak = 0;
+        const d = new Date();
+        // 今天没打则从昨天开始算
+        if (!this.isHabitCheckedToday(habitId, formatDate(d))) {
+            d.setDate(d.getDate() - 1);
+        }
+        while (true) {
+            const ds = formatDate(d);
+            if (this.isHabitCheckedToday(habitId, ds)) { streak++; d.setDate(d.getDate() - 1); }
+            else break;
+        }
+        return streak;
+    },
+    getTodayProgress(date = state.currentDate) {
+        const day = new Date(date).getDay();
+        const todayHabits = state.habits.filter(h => h.isActive && h.weekdays.includes(day));
+        if (todayHabits.length === 0) return { total: 0, completed: 0, percent: 0 };
+        const completed = todayHabits.filter(h => this.isHabitCheckedToday(h.id, date)).length;
+        return { total: todayHabits.length, completed, percent: Math.round(completed / todayHabits.length * 100) };
+    },
+    getRecordsByDate(date = state.currentDate) {
+        return state.records.filter(r => r.date === date).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    },
+    getJournalByDate(date = state.currentDate) {
+        return state.journals.find(j => j.date === date);
+    },
+    getTimeStatsByDate(date = state.currentDate) {
+        const recs = this.getRecordsByDate(date);
+        const stats = {};
+        recs.forEach(r => {
+            if (!stats[r.tag]) stats[r.tag] = 0;
+            stats[r.tag] += r.duration || 0;
+        });
+        return stats;
+    },
+    getMoodTrend(days = 7) {
+        const result = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            const ds = formatDate(d);
+            const j = this.getJournalByDate(ds);
+            result.push({ date: ds, mood: j ? j.mood : 0, label: `${d.getMonth()+1}/${d.getDate()}` });
+        }
+        return result;
+    },
+    getHabitCompletionRate(habitId, days = 30) {
+        let done = 0;
+        for (let i = 0; i < days; i++) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            if (this.isHabitCheckedToday(habitId, formatDate(d))) done++;
+        }
+        return Math.round(done / days * 100);
+    },
+    getHeatmapData() {
+        const result = {};
+        const year = new Date().getFullYear();
+        for (let m = 0; m < 12; m++) {
+            for (let d = 1; d <= 31; d++) {
+                const date = new Date(year, m, d);
+                if (date.getMonth() !== m) continue;
+                if (date > new Date()) continue;
+                const ds = formatDate(date);
+                const day = date.getDay();
+                const todayHabits = state.habits.filter(h => h.isActive && h.weekdays.includes(day));
+                if (todayHabits.length === 0) { result[ds] = 0; continue; }
+                const dayCheckins = state.checkins.filter(c => c.date === ds);
+                result[ds] = dayCheckins.length / todayHabits.length;
+            }
+        }
+        return result;
+    },
+    getDisciplineScore() {
+        const progress = this.getTodayProgress();
+        const moodTrend = this.getMoodTrend(7);
+        const moodsWithScore = moodTrend.filter(m => m.mood > 0);
+        const avgMood = moodsWithScore.length > 0 ? moodsWithScore.reduce((s, m) => s + m.mood, 0) / moodsWithScore.length : 3;
+        const maxStreak = Math.max(0, ...state.habits.filter(h => h.isActive).map(h => this.getStreak(h.id)));
+        const completionScore = progress.percent * 0.4;
+        const moodScore = (avgMood / 5 * 100) * 0.3;
+        const streakScore = Math.min(maxStreak * 2, 30);
+        return Math.round(completionScore + moodScore + streakScore);
+    },
+    getInsights() {
+        const insights = [];
+        // 连续打卡提醒
+        state.habits.filter(h => h.isActive).forEach(h => {
+            const streak = this.getStreak(h.id);
+            if (streak === 7) insights.push({ icon: '🔥', text: `"${h.name}"已坚持7天，再坚持21天将形成稳定习惯！` });
+            if (streak === 21) insights.push({ icon: '🎉', text: `"${h.name}"已坚持21天，习惯已初步养成！` });
+            if (streak === 50) insights.push({ icon: '🏆', text: `"${h.name}"已坚持50天，你太棒了！` });
+            if (streak === 100) insights.push({ icon: '👑', text: `"${h.name}"已坚持100天！你已是自律达人！` });
+        });
+        // 完成率分析
+        const progress = this.getTodayProgress();
+        if (progress.total > 0 && progress.completed === 0 && new Date().getHours() >= 20) {
+            insights.push({ icon: '⚠️', text: '今天还没有完成任何打卡，现在开始还不晚！' });
+        }
+        // 心情与运动相关性
+        const moodTrend = this.getMoodTrend(7);
+        const moodsWithScore = moodTrend.filter(m => m.mood > 0);
+        if (moodsWithScore.length >= 3) {
+            const avg = moodsWithScore.reduce((s, m) => s + m.mood, 0) / moodsWithScore.length;
+            if (avg >= 4) insights.push({ icon: '😊', text: '最近一周心情不错，继续保持积极的生活态度！' });
+            if (avg <= 2.5) insights.push({ icon: '💙', text: '最近心情偏低，试试多做些运动或与朋友交流。' });
+        }
+        // 完成率最低的习惯
+        let lowestHabit = null, lowestRate = 100;
+        state.habits.filter(h => h.isActive).forEach(h => {
+            const rate = this.getHabitCompletionRate(h.id, 30);
+            if (rate < lowestRate) { lowestRate = rate; lowestHabit = h; }
+        });
+        if (lowestHabit && lowestRate < 50) {
+            insights.push({ icon: '📌', text: `"${lowestHabit.name}"近30天完成率仅${lowestRate}%，考虑调整目标或频率。` });
+        }
+        // 今日时间统计
+        const todayStats = this.getTimeStatsByDate();
+        const totalTime = Object.values(todayStats).reduce((s, v) => s + v, 0);
+        if (totalTime > 0) {
+            const maxTag = Object.entries(todayStats).sort((a,b) => b[1]-a[1])[0];
+            insights.push({ icon: '⏰', text: `今日${maxTag[0]}占比最高(${Math.round(maxTag[1]/totalTime*100)}%)，共${maxTag[1]}分钟。` });
+        }
+        if (insights.length === 0) {
+            insights.push({ icon: '🌱', text: '开始记录你的每一天，慢慢你会看到自己的成长轨迹。' });
+        }
+        return insights;
+    },
+    exportAllData() {
+        const allData = {};
+        Object.entries(KEYS).forEach(([name, key]) => { allData[name] = loadData(key); });
+        return JSON.stringify(allData, null, 2);
+    },
+    importAllData(jsonStr) {
+        const data = JSON.parse(jsonStr);
+        Object.entries(KEYS).forEach(([name, key]) => {
+            if (data[name]) saveData(key, data[name]);
+        });
+    }
+};
+
+// ===================== 默认数据初始化 =====================
+function initDefaultData() {
+    if (state.habits.length === 0) {
+        const defaults = [
+            { name: '早起', icon: '🌅', color: '#FF6B35', targetType: 'boolean', targetValue: 1, unit: '', weekdays: [1,2,3,4,5,6,0] },
+            { name: '阅读', icon: '📚', color: '#4A90D9', targetType: 'number', targetValue: 30, unit: '分钟', weekdays: [1,2,3,4,5,6,0] },
+            { name: '运动', icon: '🏃', color: '#00B894', targetType: 'number', targetValue: 30, unit: '分钟', weekdays: [1,2,3,4,5,6,0] },
+            { name: '冥想', icon: '🧘', color: '#9B59B6', targetType: 'boolean', targetValue: 1, unit: '', weekdays: [1,2,3,4,5,6,0] },
+            { name: '喝水', icon: '💧', color: '#3498DB', targetType: 'number', targetValue: 8, unit: '杯', weekdays: [1,2,3,4,5,6,0] },
+        ];
+        defaults.forEach(d => {
+            state.habits.push({ id: `h${Date.now()}_${Math.random()}`, ...d, frequency: 'daily', isActive: true, createdAt: todayStr(), goalId: null });
+        });
+        saveHabits();
+    }
+    if (state.goals.length === 0) {
+        state.goals.push({
+            id: 'g1', title: '2026年自律养成', description: '坚持每日打卡，养成自律好习惯',
+            type: 'yearly', targetValue: 365, deadline: '2026-12-31', createdAt: todayStr()
+        });
+        saveGoals();
+    }
+}
+
+// ===================== 渲染函数 =====================
+function applyTheme() {
+    document.documentElement.setAttribute('data-theme', state.settings.theme);
+}
+
+function render() {
+    applyTheme();
+    const app = $('#app');
+    app.innerHTML = `
+        <div class="flex min-h-screen">
+            <!-- 侧边栏 -->
+            <aside class="sidebar glass w-[240px] flex-shrink-0 border-r flex flex-col" style="border-color:var(--border)">
+                <div class="p-6 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-2xl" style="background:var(--primary)">🌿</div>
+                    <div>
+                        <div class="font-bold text-lg" style="color:var(--text)">自律追踪</div>
+                        <div class="text-xs" style="color:var(--text-secondary)">Discipline Tracker</div>
+                    </div>
+                </div>
+                <nav class="flex-1 px-3 py-2 flex flex-col gap-1">
+                    ${navItem('dashboard','📊','仪表盘')}
+                    ${navItem('habits','✅','习惯打卡')}
+                    ${navItem('records','📝','每日记录')}
+                    ${navItem('journal','💭','感想日记')}
+                    ${navItem('stats','📈','数据分析')}
+                    ${navItem('goals','🎯','目标管理')}
+                    ${navItem('settings','⚙️','设置')}
+                </nav>
+                <div class="p-4 border-t" style="border-color:var(--border)">
+                    <div class="text-xs text-center" style="color:var(--text-secondary)">
+                        自律第 ${getDaysSince()} 天
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 遮罩层 -->
+            <div id="overlay" class="fixed inset-0 bg-black/50 z-50 hidden md:hidden" onclick="closeSidebar()"></div>
+
+            <!-- 主内容区 -->
+            <main class="main-content flex-1 overflow-y-auto" style="max-height:100vh">
+                <!-- 移动端顶栏 -->
+                <div class="mobile-header items-center justify-between p-4 border-b sticky top-0 z-30 glass" style="border-color:var(--border)">
+                    <button onclick="openSidebar()" class="text-2xl">☰</button>
+                    <span class="font-bold" style="color:var(--text)">🌿 自律追踪</span>
+                    <div class="w-8"></div>
+                </div>
+
+                <div class="p-4 md:p-6 max-w-6xl mx-auto fade-enter" id="main-content">
+                    ${renderView()}
+                </div>
+            </main>
+        </div>
+    `;
+    bindNavEvents();
+    afterRender();
+}
+
+function navItem(view, icon, label) {
+    return `<a class="nav-item ${state.currentView === view ? 'active' : ''}" data-view="${view}" onclick="switchView('${view}')">
+        <span class="icon">${icon}</span><span>${label}</span>
+    </a>`;
+}
+
+function switchView(view) {
+    state.currentView = view;
+    state.currentDate = todayStr();
+    render();
+    closeSidebar();
+}
+
+function openSidebar() { $('.sidebar').classList.add('open'); $('#overlay').classList.remove('hidden'); }
+function closeSidebar() { $('.sidebar').classList.remove('open'); $('#overlay').classList.add('hidden'); }
+
+function getDaysSince() {
+    const firstHabit = state.habits[0];
+    if (!firstHabit) return 1;
+    const created = new Date(firstHabit.createdAt);
+    const diff = Math.floor((new Date() - created) / 86400000);
+    return diff + 1;
+}
+
+function renderView() {
+    switch (state.currentView) {
+        case 'dashboard': return renderDashboard();
+        case 'habits': return renderHabits();
+        case 'records': return renderRecords();
+        case 'journal': return renderJournal();
+        case 'stats': return renderStats();
+        case 'goals': return renderGoals();
+        case 'settings': return renderSettings();
+        default: return renderDashboard();
+    }
+}
+
+// ===================== 仪表盘 =====================
+function renderDashboard() {
+    const progress = api.getTodayProgress();
+    const score = api.getDisciplineScore();
+    const todayRecords = api.getRecordsByDate();
+    const journal = api.getJournalByDate();
+    const maxStreak = Math.max(0, ...state.habits.filter(h => h.isActive).map(h => api.getStreak(h.id)));
+    const hour = new Date().getHours();
+    const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早安' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : hour < 22 ? '晚上好' : '夜深了';
+    const todayHabits = state.habits.filter(h => h.isActive && h.weekdays.includes(new Date().getDay()));
+
+    return `
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold mb-1" style="color:var(--text)">${greeting}！${state.settings.userName || ''} 👋</h1>
+            <p style="color:var(--text-secondary)" class="text-sm">${formatDateCN(new Date())} · 自律第 ${getDaysSince()} 天 · 连续打卡 ${maxStreak} 天 🔥</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <!-- 今日打卡进度 -->
+            <div class="card p-5 md:col-span-2">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base" style="color:var(--text)">今日打卡</h3>
+                    <span class="text-sm font-bold" style="color:var(--primary)">${progress.completed}/${progress.total}</span>
+                </div>
+                <div class="progress-bar mb-4"><div class="progress-bar-fill" style="width:${progress.percent}%;background:var(--primary)"></div></div>
+                <div class="flex flex-wrap gap-3">
+                    ${todayHabits.length > 0 ? todayHabits.map(h => {
+                        const checked = api.isHabitCheckedToday(h.id);
+                        return `<div class="flex items-center gap-2 cursor-pointer habit-card" onclick="quickCheckin('${h.id}', event)">
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center text-lg" style="background:${checked ? h.color : 'var(--border)'};transition:all 0.3s">${h.icon}</div>
+                            <span class="text-sm ${checked ? 'line-through opacity-60' : ''}" style="color:var(--text)">${h.name}</span>
+                            ${checked ? '<span class="text-xs" style="color:var(--primary)">✓</span>' : ''}
+                        </div>`;
+                    }).join('') : '<p class="text-sm" style="color:var(--text-secondary)">还没有创建习惯，去添加一些吧！</p>'}
+                </div>
+            </div>
+
+            <!-- 自律评分 -->
+            <div class="card p-5 flex flex-col items-center justify-center">
+                <div class="relative w-24 h-24 mb-2">
+                    <svg class="circle-progress w-24 h-24">
+                        <circle cx="48" cy="48" r="40" fill="none" stroke="var(--border)" stroke-width="6"/>
+                        <circle cx="48" cy="48" r="40" fill="none" stroke="var(--primary)" stroke-width="6"
+                            stroke-dasharray="${2 * Math.PI * 40}" stroke-dashoffset="${2 * Math.PI * 40 * (1 - score/100)}" stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-2xl font-bold" style="color:var(--text)">${score}</span>
+                    </div>
+                </div>
+                <span class="text-xs font-medium" style="color:var(--text-secondary)">自律评分</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- 今日时间轴 -->
+            <div class="card p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base" style="color:var(--text)">今日时间轴</h3>
+                    <button class="text-xs btn btn-secondary py-1 px-3" onclick="switchView('records')">查看全部 →</button>
+                </div>
+                ${todayRecords.length > 0 ? `<div class="space-y-3">${todayRecords.slice(0, 4).map(r => `
+                    <div class="timeline-item">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold" style="color:var(--primary)">${r.time || ''}</span>
+                            <span class="tag" style="background:${getTagColor(r.tag)}20;color:${getTagColor(r.tag)}">${r.tag}</span>
+                        </div>
+                        <p class="text-sm" style="color:var(--text)">${r.content}</p>
+                        ${r.duration ? `<span class="text-xs" style="color:var(--text-secondary)">${r.duration}分钟</span>` : ''}
+                    </div>`).join('')}</div>` : `<p class="text-sm text-center py-4" style="color:var(--text-secondary)">还没有记录，去记录今天做了什么吧</p>`}
+            </div>
+
+            <!-- 今日心情 -->
+            <div class="card p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base" style="color:var(--text)">今日心情与日记</h3>
+                    <button class="text-xs btn btn-secondary py-1 px-3" onclick="switchView('journal')">${journal ? '查看' : '去写'} →</button>
+                </div>
+                ${journal ? `
+                    <div class="mb-3">
+                        <span class="text-3xl">${getMoodEmoji(journal.mood)}</span>
+                        <span class="text-sm ml-2" style="color:var(--text-secondary)">${getMoodText(journal.mood)}</span>
+                    </div>
+                    <p class="text-sm leading-relaxed mb-2" style="color:var(--text)">${journal.content.slice(0, 80)}${journal.content.length > 80 ? '...' : ''}</p>
+                    ${journal.tags ? journal.tags.map(t => `<span class="tag" style="background:var(--primary)15;color:var(--primary)">#${t}</span>`).join('') : ''}
+                ` : `
+                    <div class="text-center py-6">
+                        <p class="text-4xl mb-2">📝</p>
+                        <p class="text-sm" style="color:var(--text-secondary)">今天还没写日记</p>
+                        <button class="btn btn-primary mt-3 text-sm" onclick="switchView('journal')">开始写感悟</button>
+                    </div>
+                `}
+            </div>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            ${quickAction('✅','一键打卡','habits')}
+            ${quickAction('📝','记一笔','records')}
+            ${quickAction('💭','写日记','journal')}
+            ${quickAction('📈','看数据','stats')}
+        </div>
+    `;
+}
+
+function quickAction(icon, label, view) {
+    return `<div class="card p-4 flex flex-col items-center gap-2 cursor-pointer" onclick="switchView('${view}')"
+        style="transition:all 0.2s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span class="text-2xl">${icon}</span>
+        <span class="text-xs font-medium" style="color:var(--text)">${label}</span>
+    </div>`;
+}
+
+function quickCheckin(habitId, e) {
+    api.toggleCheckin(habitId);
+    if (api.isHabitCheckedToday(habitId)) {
+        const rect = e.target.getBoundingClientRect();
+        celebrate(rect.left + rect.width/2, rect.top + rect.height/2);
+        showToast('打卡成功！👍');
+    }
+    render();
+}
+
+function getTagColor(tag) {
+    const map = { '运动':'#00B894','学习':'#4A90D9','工作':'#FF6B35','阅读':'#9B59B6','生活':'#F39C12','娱乐':'#E91E63','冥想':'#00BCD4','健康':'#2ECC71','社交':'#F1C40F','家务':'#1ABC9C','休息':'#3498DB','其他':'#64748b' };
+    return map[tag] || '#64748b';
+}
+
+function getMoodEmoji(mood) { return ['','😫','😟','😐','🙂','😄'][mood] || '😐'; }
+function getMoodText(mood) { return ['','很差','不好','一般','良好','很好'][mood] || '一般'; }
+
+// ===================== 习惯打卡页 =====================
+function renderHabits() {
+    const activeHabits = state.habits.filter(h => h.isActive);
+    return `
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold" style="color:var(--text)">习惯打卡</h1>
+                <p class="text-sm mt-1" style="color:var(--text-secondary)">${formatDateCN(state.currentDate)}</p>
+            </div>
+            <button class="btn btn-primary" onclick="openHabitModal()">+ 新建习惯</button>
+        </div>
+
+        <!-- 日期选择器 -->
+        ${renderDateNavigator()}
+
+        <div class="space-y-3">
+            ${activeHabits.length > 0 ? activeHabits.map(h => renderHabitCard(h)).join('') : `
+                <div class="card p-12 text-center">
+                    <p class="text-5xl mb-4">🎯</p>
+                    <p class="text-sm mb-4" style="color:var(--text-secondary)">还没有创建任何习惯</p>
+                    <button class="btn btn-primary" onclick="openHabitModal()">创建第一个习惯</button>
+                </div>
+            `}
+        </div>
+
+        <!-- 已归档习惯 -->
+        ${state.habits.filter(h => !h.isActive).length > 0 ? `
+            <div class="mt-8">
+                <h3 class="text-sm font-bold mb-3" style="color:var(--text-secondary)">已归档</h3>
+                <div class="space-y-2">
+                    ${state.habits.filter(h => !h.isActive).map(h => `
+                        <div class="card p-3 flex items-center justify-between opacity-60">
+                            <div class="flex items-center gap-3">
+                                <span class="text-lg">${h.icon}</span>
+                                <span class="text-sm" style="color:var(--text)">${h.name}</span>
+                            </div>
+                            <button class="text-xs btn btn-secondary py-1 px-2" onclick="toggleHabitActive('${h.id}')">恢复</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : ''}
+    `;
+}
+
+function renderDateNavigator() {
+    const d = new Date(state.currentDate);
+    const isToday = state.currentDate === todayStr();
+    const isFuture = d > new Date();
+    return `
+        <div class="card p-3 mb-4 flex items-center justify-between">
+            <button class="btn btn-secondary py-1 px-3" onclick="changeDate(-1)">◀ 前一天</button>
+            <div class="text-center">
+                <div class="font-bold text-sm" style="color:var(--text)">${isToday ? '今天' : formatDateCN(d)}</div>
+            </div>
+            <button class="btn btn-secondary py-1 px-3" onclick="changeDate(1)" ${isToday ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>后一天 ▶</button>
+        </div>
+    `;
+}
+
+function changeDate(offset) {
+    const d = new Date(state.currentDate);
+    d.setDate(d.getDate() + offset);
+    if (d > new Date()) return;
+    state.currentDate = formatDate(d);
+    render();
+}
+
+function renderHabitCard(h) {
+    const checked = api.isHabitCheckedToday(h.id);
+    const streak = api.getStreak(h.id);
+    const rate = api.getHabitCompletionRate(h.id, 30);
+    const isNumber = h.targetType === 'number';
+    const currentValue = api.getCheckinValue(h.id);
+
+    return `
+        <div class="card p-4 habit-card" style="border-left:4px solid ${h.color}">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background:${h.color}15">${h.icon}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-sm" style="color:var(--text)">${h.name}</span>
+                        ${streak > 0 ? `<span class="text-xs flame">🔥${streak}天</span>` : ''}
+                    </div>
+                    <div class="text-xs" style="color:var(--text-secondary)">
+                        ${isNumber ? `目标 ${h.targetValue}${h.unit}` : '每日打卡'} · 近30天 ${rate}%
+                    </div>
+                </div>
+                ${!isNumber ? `<button class="checkin-btn ${checked ? 'checked' : ''}" onclick="checkinHabit('${h.id}', event)"></button>` : ''}
+            </div>
+            <div class="progress-bar"><div class="progress-bar-fill" style="width:${rate}%;background:${h.color}"></div></div>
+            ${isNumber ? `
+                <div class="mt-3 flex items-center gap-2">
+                    <button class="btn btn-secondary py-1 px-3" onclick="adjustNumberHabit('${h.id}', -1)">−</button>
+                    <div class="flex-1 text-center">
+                        <span class="text-lg font-bold" style="color:${checked ? h.color : 'var(--text)'}">${currentValue || 0}</span>
+                        <span class="text-xs" style="color:var(--text-secondary)"> / ${h.targetValue}${h.unit}</span>
+                    </div>
+                    <button class="btn btn-secondary py-1 px-3" onclick="adjustNumberHabit('${h.id}', 1)">+</button>
+                    <button class="btn btn-primary py-1 px-3" onclick="checkinNumberHabit('${h.id}', event)">打卡</button>
+                </div>
+                <div class="mt-2 progress-bar"><div class="progress-bar-fill" style="width:${Math.min((currentValue||0)/h.targetValue*100,100)}%;background:${h.color}"></div></div>
+            ` : ''}
+            <div class="mt-2 flex gap-2">
+                <button class="text-xs" style="color:var(--text-secondary)" onclick="editHabit('${h.id}')">编辑</button>
+                <button class="text-xs" style="color:var(--text-secondary)" onclick="archiveHabit('${h.id}')">归档</button>
+                <button class="text-xs" style="color:var(--danger)" onclick="deleteHabit('${h.id}')">删除</button>
+            </div>
+        </div>
+    `;
+}
+
+function checkinHabit(habitId, e) {
+    api.toggleCheckin(habitId);
+    if (api.isHabitCheckedToday(habitId)) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        celebrate(rect.left + rect.width/2, rect.top + rect.height/2);
+        showToast('打卡成功！🎉');
+    }
+    render();
+}
+
+function adjustNumberHabit(habitId, delta) {
+    const habit = state.habits.find(h => h.id === habitId);
+    if (!habit) return;
+    const current = api.getCheckinValue(habitId) || 0;
+    const newVal = Math.max(0, current + delta);
+    api.setCheckinValue(habitId, newVal);
+    render();
+}
+
+function checkinNumberHabit(habitId, e) {
+    const habit = state.habits.find(h => h.id === habitId);
+    const val = api.getCheckinValue(habitId) || 0;
+    if (val >= habit.targetValue) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        celebrate(rect.left + rect.width/2, rect.top + rect.height/2);
+        showToast(`太棒了！完成${habit.name}目标！🎉`);
+    } else {
+        showToast(`已记录${val}${habit.unit}，继续加油！💪`);
+    }
+    render();
+}
+
+function archiveHabit(habitId) {
+    const h = state.habits.find(h => h.id === habitId);
+    if (h) { h.isActive = false; saveHabits(); render(); showToast('已归档'); }
+}
+function toggleHabitActive(habitId) {
+    const h = state.habits.find(h => h.id === habitId);
+    if (h) { h.isActive = true; saveHabits(); render(); showToast('已恢复'); }
+}
+function deleteHabit(habitId) {
+    if (!confirm('确定删除此习惯？相关打卡记录也会保留。')) return;
+    state.habits = state.habits.filter(h => h.id !== habitId);
+    saveHabits();
+    render();
+    showToast('已删除');
+}
+function editHabit(habitId) { openHabitModal(habitId); }
+
+// 习惯弹窗
+let editingHabitId = null;
+function openHabitModal(habitId = null) {
+    editingHabitId = habitId;
+    const h = habitId ? state.habits.find(h => h.id === habitId) : null;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'habitModal';
+    modal.innerHTML = `
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 class="font-bold text-lg mb-4" style="color:var(--text)">${habitId ? '编辑习惯' : '新建习惯'}</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">习惯名称</label>
+                    <input id="habit-name" placeholder="如：早起、阅读30分钟" value="${h ? h.name : ''}"/>
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">图标</label>
+                    <div class="flex flex-wrap gap-2" id="icon-picker">
+                        ${ICONS.map(icon => `<button class="w-10 h-10 rounded-xl text-xl ${h && h.icon === icon ? 'ring-2' : ''}" style="background:var(--bg);${h && h.icon === icon ? '--tw-ring-color:var(--primary)' : ''}" data-icon="${icon}">${icon}</button>`).join('')}
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">颜色</label>
+                    <div class="flex flex-wrap gap-2" id="color-picker">
+                        ${COLORS.map(c => `<button class="w-8 h-8 rounded-full ${h && h.color === c ? 'ring-2 ring-offset-2' : ''}" style="background:${c};${h && h.color === c ? '--tw-ring-color:'+c : ''}" data-color="${c}"></button>`).join('')}
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">类型</label>
+                        <select id="habit-type" onchange="toggleTargetFields()">
+                            <option value="boolean" ${h && h.targetType === 'boolean' ? 'selected' : ''}>打卡型</option>
+                            <option value="number" ${h && h.targetType === 'number' ? 'selected' : ''}>计量型</option>
+                        </select>
+                    </div>
+                    <div id="target-fields" class="${h && h.targetType === 'number' ? '' : 'hidden'}">
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">目标值</label>
+                        <div class="flex gap-2">
+                            <input id="habit-target" type="number" placeholder="30" value="${h ? h.targetValue : ''}" class="flex-1" style="width:60px"/>
+                            <input id="habit-unit" placeholder="分钟" value="${h ? h.unit : ''}" class="flex-1" style="width:80px"/>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">重复</label>
+                    <div class="flex gap-2" id="weekday-picker">
+                        ${['一','二','三','四','五','六','日'].map((d, i) => {
+                            const dayNum = i === 6 ? 0 : i + 1;
+                            const selected = h ? h.weekdays.includes(dayNum) : true;
+                            return `<button class="weekday-btn w-9 h-9 rounded-lg text-sm font-medium ${selected ? 'active' : ''}" data-day="${dayNum}" style="background:${selected ? 'var(--primary)' : 'var(--bg)'};color:${selected ? 'white' : 'var(--text)'}">${d}</button>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn btn-primary flex-1" onclick="saveHabitFromModal()">保存</button>
+                <button class="btn btn-secondary flex-1" onclick="closeHabitModal()">取消</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 图标选择
+    let selectedIcon = h ? h.icon : ICONS[0];
+    let selectedColor = h ? h.color : COLORS[0];
+    $$('#icon-picker button').forEach(btn => {
+        btn.onclick = () => {
+            $$('#icon-picker button').forEach(b => b.classList.remove('ring-2'));
+            btn.classList.add('ring-2');
+            btn.style.setProperty('--tw-ring-color', selectedColor);
+            selectedIcon = btn.dataset.icon;
+        };
+    });
+    $$('#color-picker button').forEach(btn => {
+        btn.onclick = () => {
+            $$('#color-picker button').forEach(b => b.classList.remove('ring-2','ring-offset-2'));
+            btn.classList.add('ring-2','ring-offset-2');
+            selectedColor = btn.dataset.color;
+        };
+    });
+    $$('#weekday-picker button').forEach(btn => {
+        btn.onclick = () => {
+            const isActive = btn.classList.contains('active');
+            if (isActive) { btn.classList.remove('active'); btn.style.background = 'var(--bg)'; btn.style.color = 'var(--text)'; }
+            else { btn.classList.add('active'); btn.style.background = 'var(--primary)'; btn.style.color = 'white'; }
+        };
+    });
+}
+function toggleTargetFields() { $('#target-fields').classList.toggle('hidden', $('#habit-type').value !== 'number'); }
+function closeHabitModal() { $('#habitModal').remove(); }
+
+function saveHabitFromModal() {
+    const name = $('#habit-name').value.trim();
+    if (!name) { showToast('请输入习惯名称'); return; }
+    const type = $('#habit-type').value;
+    const weekdays = $$('#weekday-picker button.active').map(b => parseInt(b.dataset.day));
+    if (weekdays.length === 0) { showToast('请至少选择一天'); return; }
+    const icon = $$('#icon-picker button.ring-2')[0]?.dataset.icon || ICONS[0];
+    const color = $$('#color-picker button.ring-2')[0]?.dataset.color || COLORS[0];
+    const targetValue = type === 'number' ? (parseInt($('#habit-target').value) || 1) : 1;
+    const unit = type === 'number' ? ($('#habit-unit').value || '') : '';
+
+    if (editingHabitId) {
+        const h = state.habits.find(h => h.id === editingHabitId);
+        if (h) { Object.assign(h, { name, icon, color, targetType: type, targetValue, unit, weekdays }); }
+    } else {
+        state.habits.push({
+            id: `h${Date.now()}_${Math.random()}`, name, icon, color,
+            targetType: type, targetValue, unit, weekdays,
+            frequency: 'daily', isActive: true, createdAt: todayStr(), goalId: null
+        });
+    }
+    saveHabits();
+    closeHabitModal();
+    render();
+    showToast(editingHabitId ? '已更新' : '习惯已创建');
+}
+
+// ===================== 每日记录页 =====================
+function renderRecords() {
+    const records = api.getRecordsByDate();
+    const timeStats = api.getTimeStatsByDate();
+    const totalMin = Object.values(timeStats).reduce((s, v) => s + v, 0);
+
+    return `
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold" style="color:var(--text)">每日记录</h1>
+                <p class="text-sm mt-1" style="color:var(--text-secondary)">记录今天做了什么</p>
+            </div>
+            <button class="btn btn-primary" onclick="openRecordModal()">+ 记一笔</button>
+        </div>
+
+        ${renderDateNavigator()}
+
+        ${totalMin > 0 ? `
+            <div class="card p-5 mb-4">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">📊 今日时间分配</h3>
+                <div id="time-pie-chart" style="height:200px"></div>
+                <div class="flex flex-wrap gap-2 mt-3 justify-center">
+                    ${Object.entries(timeStats).map(([tag, min]) => `
+                        <span class="tag" style="background:${getTagColor(tag)}20;color:${getTagColor(tag)}">
+                            ${tag} ${min}分钟 (${Math.round(min/totalMin*100)}%)
+                        </span>
+                    `).join('')}
+                </div>
+                <div class="text-center text-xs mt-2" style="color:var(--text-secondary)">总计 ${Math.floor(totalMin/60)}小时${totalMin%60}分钟</div>
+            </div>
+        ` : ''}
+
+        <div class="card p-5">
+            <h3 class="font-bold text-sm mb-4" style="color:var(--text)">📋 时间轴</h3>
+            ${records.length > 0 ? `<div class="space-y-3">${records.map(r => `
+                <div class="timeline-item flex items-start gap-2 group">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold" style="color:var(--primary)">${r.time || ''}</span>
+                            <span class="tag" style="background:${getTagColor(r.tag)}20;color:${getTagColor(r.tag)}">${r.tag}</span>
+                            ${r.duration ? `<span class="text-xs" style="color:var(--text-secondary)">${r.duration}分钟</span>` : ''}
+                        </div>
+                        <p class="text-sm" style="color:var(--text)">${r.content}</p>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="text-xs" style="color:var(--text-secondary)" onclick="editRecord('${r.id}')">✏️</button>
+                        <button class="text-xs" style="color:var(--danger)" onclick="deleteRecord('${r.id}')">🗑️</button>
+                    </div>
+                </div>
+            `).join('')}</div>` : `<div class="text-center py-8"><p class="text-4xl mb-2">📝</p><p class="text-sm" style="color:var(--text-secondary)">还没有记录，点击"记一笔"开始</p></div>`}
+        </div>
+    `;
+}
+
+let editingRecordId = null;
+function openRecordModal(recordId = null) {
+    editingRecordId = recordId;
+    const r = recordId ? state.records.find(r => r.id === recordId) : null;
+    const now = new Date();
+    const defaultTime = r ? r.time : `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'recordModal';
+    modal.innerHTML = `
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 class="font-bold text-lg mb-4" style="color:var(--text)">${recordId ? '编辑记录' : '记一笔'}</h3>
+            <div class="space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">时间</label>
+                        <input id="record-time" type="time" value="${defaultTime}" style="width:100%"/>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">时长(分)</label>
+                        <input id="record-duration" type="number" placeholder="30" value="${r ? r.duration || '' : ''}" style="width:100%"/>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">标签</label>
+                        <select id="record-tag" style="width:100%">
+                            ${TAGS.map(t => `<option value="${t}" ${r && r.tag === t ? 'selected' : ''}>${t}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">内容</label>
+                    <textarea id="record-content" rows="3" placeholder="做了什么..." style="width:100%">${r ? r.content : ''}</textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn btn-primary flex-1" onclick="saveRecordFromModal()">保存</button>
+                <button class="btn btn-secondary flex-1" onclick="closeRecordModal()">取消</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+function closeRecordModal() { $('#recordModal').remove(); }
+function saveRecordFromModal() {
+    const time = $('#record-time').value;
+    const duration = parseInt($('#record-duration').value) || 0;
+    const tag = $('#record-tag').value;
+    const content = $('#record-content').value.trim();
+    if (!content) { showToast('请输入内容'); return; }
+    if (editingRecordId) {
+        const r = state.records.find(r => r.id === editingRecordId);
+        if (r) { Object.assign(r, { time, duration, tag, content }); }
+    } else {
+        state.records.push({ id: `r${Date.now()}`, date: state.currentDate, time, duration, tag, content, createdAt: new Date().toISOString() });
+    }
+    saveRecords();
+    closeRecordModal();
+    render();
+    showToast('已保存');
+}
+function editRecord(id) { openRecordModal(id); }
+function deleteRecord(id) {
+    state.records = state.records.filter(r => r.id !== id);
+    saveRecords();
+    render();
+    showToast('已删除');
+}
+
+// ===================== 感想日记页 =====================
+function renderJournal() {
+    const journal = api.getJournalByDate();
+    const mood = journal ? journal.mood : 0;
+    const moods = [
+        { val: 1, emoji: '😫', text: '很差' },
+        { val: 2, emoji: '😟', text: '不好' },
+        { val: 3, emoji: '😐', text: '一般' },
+        { val: 4, emoji: '🙂', text: '良好' },
+        { val: 5, emoji: '😄', text: '很好' },
+    ];
+
+    // 获取历史日记（最近10条）
+    const history = [...state.journals].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+
+    return `
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold" style="color:var(--text)">感想日记</h1>
+                <p class="text-sm mt-1" style="color:var(--text-secondary)">${formatDateCN(state.currentDate)}</p>
+            </div>
+        </div>
+
+        ${renderDateNavigator()}
+
+        <!-- 心情选择 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-sm mb-3" style="color:var(--text)">今日心情</h3>
+            <div class="flex justify-around">
+                ${moods.map(m => `
+                    <button class="mood-btn ${mood === m.val ? 'selected' : ''}" onclick="selectMood(${m.val})" title="${m.text}">
+                        ${m.emoji}
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+
+        <!-- 日记编辑 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-sm mb-3" style="color:var(--text)">今日反思</h3>
+            <textarea id="journal-content" rows="6" placeholder="今天最有成就感的事是什么？&#10;哪里做得不够好？&#10;明天想怎样改进？" style="width:100%">${journal ? journal.content || '' : ''}</textarea>
+        </div>
+
+        <!-- 感恩日记 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-sm mb-3" style="color:var(--text)">今日感恩</h3>
+            <div id="gratitude-list" class="space-y-2">
+                ${(journal && journal.gratitude && journal.gratitude.length > 0 ? journal.gratitude : ['','','']).map((g, i) => `
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold w-6" style="color:var(--primary)">${i+1}.</span>
+                        <input class="gratitude-input flex-1" data-idx="${i}" placeholder="一件值得感恩/开心的事..." value="${g}" style="width:100%"/>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="text-xs mt-2" style="color:var(--primary)" onclick="addGratitude()">+ 再加一条</button>
+        </div>
+
+        <!-- 标签 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-sm mb-3" style="color:var(--text)">标签</h3>
+            <div id="journal-tags" class="flex flex-wrap gap-2">
+                ${(journal && journal.tags ? journal.tags : []).map(t => `
+                    <span class="tag flex items-center gap-1" style="background:var(--primary)15;color:var(--primary)" data-tag="${t}">
+                        #${t} <button onclick="removeTag('${t}')" style="color:inherit">✕</button>
+                    </span>
+                `).join('')}
+            </div>
+            <div class="flex gap-2 mt-2">
+                <input id="tag-input" placeholder="输入标签后回车" style="flex:1;width:100%" onkeydown="if(event.key==='Enter'){addTag();}"/>
+                <button class="btn btn-secondary py-1 px-3 text-xs" onclick="addTag()">添加</button>
+            </div>
+        </div>
+
+        <button class="btn btn-primary w-full mb-6" onclick="saveJournal()">💾 保存日记</button>
+
+        <!-- 历史日记 -->
+        <div>
+            <h3 class="font-bold text-sm mb-3" style="color:var(--text-secondary)">📜 历史日记</h3>
+            <div class="space-y-3">
+                ${history.length > 0 ? history.map(j => {
+                    const d = new Date(j.date);
+                    const days = ['日','一','二','三','四','五','六'];
+                    return `
+                        <div class="card p-4 cursor-pointer" onclick="loadHistoryJournal('${j.date}')">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl">${getMoodEmoji(j.mood)}</span>
+                                    <span class="text-sm font-bold" style="color:var(--text)">${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}</span>
+                                </div>
+                                <span class="text-xs" style="color:var(--text-secondary)">${getMoodText(j.mood)}</span>
+                            </div>
+                            <p class="text-sm leading-relaxed mb-2" style="color:var(--text)">${(j.content || '').slice(0, 100)}${(j.content||'').length > 100 ? '...' : ''}</p>
+                            ${j.tags && j.tags.length > 0 ? `<div>${j.tags.map(t => `<span class="tag" style="background:var(--primary)15;color:var(--primary)">#${t}</span>`).join('')}</div>` : ''}
+                        </div>
+                    `;
+                }).join('') : '<p class="text-sm text-center py-4" style="color:var(--text-secondary)">还没有历史日记</p>'}
+            </div>
+        </div>
+    `;
+}
+
+let currentMood = 0;
+let journalTags = [];
+let gratitudeList = [];
+
+function selectMood(val) {
+    currentMood = val;
+    $$('.mood-btn').forEach(btn => btn.classList.remove('selected'));
+    $$('.mood-btn')[val - 1].classList.add('selected');
+}
+
+function addGratitude() {
+    const list = $('#gratitude-list');
+    const idx = list.children.length;
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2';
+    div.innerHTML = `<span class="text-sm font-bold w-6" style="color:var(--primary)">${idx+1}.</span><input class="gratitude-input flex-1" data-idx="${idx}" placeholder="一件值得感恩/开心的事..." style="width:100%"/>`;
+    list.appendChild(div);
+}
+
+function addTag() {
+    const input = $('#tag-input');
+    const tag = input.value.trim();
+    if (!tag) return;
+    if (journalTags.includes(tag)) { showToast('标签已存在'); return; }
+    journalTags.push(tag);
+    input.value = '';
+    renderJournalTags();
+}
+function removeTag(tag) {
+    journalTags = journalTags.filter(t => t !== tag);
+    renderJournalTags();
+}
+function renderJournalTags() {
+    const container = $('#journal-tags');
+    container.innerHTML = journalTags.map(t => `
+        <span class="tag flex items-center gap-1" style="background:var(--primary)15;color:var(--primary)" data-tag="${t}">
+            #${t} <button onclick="removeTag('${t}')" style="color:inherit">✕</button>
+        </span>
+    `).join('');
+}
+
+function saveJournal() {
+    const content = $('#journal-content').value.trim();
+    const gratitude = $$('.gratitude-input').map(i => i.value.trim()).filter(Boolean);
+    const existing = api.getJournalByDate();
+    const mood = currentMood || (existing ? existing.mood : 0) || 0;
+
+    if (!content && gratitude.length === 0 && mood === 0) { showToast('写点什么再保存吧'); return; }
+
+    if (existing) {
+        Object.assign(existing, { content, mood, gratitude, tags: journalTags });
+    } else {
+        state.journals.push({ id: `j${Date.now()}`, date: state.currentDate, content, mood, gratitude, tags: journalTags, createdAt: new Date().toISOString() });
+    }
+    saveJournals();
+    showToast('日记已保存 ✨');
+    render();
+}
+
+function loadHistoryJournal(date) {
+    state.currentDate = date;
+    switchView('journal');
+}
+
+// ===================== 数据分析页 =====================
+function renderStats() {
+    const score = api.getDisciplineScore();
+    const progress = api.getTodayProgress();
+    const moodTrend = api.getMoodTrend(7);
+    const avgMood = moodTrend.filter(m => m.mood > 0).reduce((s, m) => s + m.mood, 0) / (moodTrend.filter(m => m.mood > 0).length || 1);
+    const insights = api.getInsights();
+
+    return `
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold" style="color:var(--text)">数据分析</h1>
+            <p class="text-sm mt-1" style="color:var(--text-secondary)">了解你的自律状态与成长趋势</p>
+        </div>
+
+        <!-- 自律综合评分 -->
+        <div class="card p-6 mb-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base" style="color:var(--text)">🏆 自律综合评分</h3>
+                <span class="text-xs" style="color:var(--text-secondary)">满分100</span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold mb-1" style="color:var(--primary)">${score}</div>
+                    <div class="text-xs" style="color:var(--text-secondary)">综合评分</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold mb-1" style="color:var(--text)">${progress.percent}%</div>
+                    <div class="text-xs" style="color:var(--text-secondary)">今日完成率</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold mb-1" style="color:var(--text)">${avgMood.toFixed(1)}</div>
+                    <div class="text-xs" style="color:var(--text-secondary)">平均心情(7天)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold mb-1" style="color:var(--accent)">${Math.max(0, ...state.habits.filter(h => h.isActive).map(h => api.getStreak(h.id)))}</div>
+                    <div class="text-xs" style="color:var(--text-secondary)">最长连续天数</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 热力图 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-sm mb-4" style="color:var(--text)">🔥 全年打卡热力图</h3>
+            <div id="heatmap-container" style="overflow-x:auto"></div>
+            <div class="flex items-center gap-2 mt-3 justify-end">
+                <span class="text-xs" style="color:var(--text-secondary)">少</span>
+                <div class="heatmap-cell" style="background:var(--border)"></div>
+                <div class="heatmap-cell" style="background:var(--primary);opacity:0.3"></div>
+                <div class="heatmap-cell" style="background:var(--primary);opacity:0.6"></div>
+                <div class="heatmap-cell" style="background:var(--primary);opacity:0.85"></div>
+                <div class="heatmap-cell" style="background:var(--primary)"></div>
+                <span class="text-xs" style="color:var(--text-secondary)">多</span>
+            </div>
+        </div>
+
+        <!-- 习惯完成率 + 心情趋势 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">📊 习惯完成率(近30天)</h3>
+                <div id="habit-bar-chart" style="height:260px"></div>
+            </div>
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">📈 心情趋势(近7天)</h3>
+                <div id="mood-line-chart" style="height:260px"></div>
+            </div>
+        </div>
+
+        <!-- 智能洞察 -->
+        <div class="card p-5">
+            <h3 class="font-bold text-sm mb-3" style="color:var(--text)">💡 智能洞察</h3>
+            <div class="space-y-2">
+                ${insights.map(i => `
+                    <div class="insight-card">
+                        <span class="mr-1">${i.icon}</span>
+                        <span class="text-sm" style="color:var(--text)">${i.text}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderHeatmap() {
+    const container = $('#heatmap-container');
+    if (!container) return;
+    const data = api.getHeatmapData();
+    const year = new Date().getFullYear();
+    const monthLabels = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    const dayLabels = ['','一','','三','','五',''];
+
+    let html = '<div style="display:inline-flex;flex-direction:column;gap:2px"><div style="height:20px"></div>';
+    dayLabels.forEach(d => { html += `<div style="height:12px;font-size:10px;color:var(--text-secondary);line-height:12px">${d}</div>`; });
+    html += '</div>';
+
+    monthLabels.forEach((m, monthIdx) => {
+        html += '<div style="display:inline-flex;flex-direction:column;gap:2px;margin-left:2px">';
+        html += `<div style="height:20px;font-size:10px;color:var(--text-secondary);white-space:nowrap">${m}</div>`;
+        for (let week = 0; week < 7; week++) {
+            html += '<div style="display:flex;gap:2px">';
+            // 找到这个月第一天是星期几
+            const firstDay = new Date(year, monthIdx, 1).getDay();
+            for (let dayInMonth = 1 + week * 7 - firstDay; dayInMonth <= 31; ) {
+                // 我们逐周渲染
+                break;
+            }
+            // 简化：渲染该月该星期的日期
+            let hasAny = false;
+            for (let d = 1; d <= 31; d++) {
+                const date = new Date(year, monthIdx, d);
+                if (date.getMonth() !== monthIdx) break;
+                if (date.getDay() !== week) continue;
+                const ds = formatDate(date);
+                const rate = data[ds] || 0;
+                let bg = 'var(--border)';
+                if (rate > 0) {
+                    if (rate <= 0.25) bg = 'var(--primary)';
+                    else if (rate <= 0.5) bg = 'var(--primary)';
+                    else if (rate <= 0.75) bg = 'var(--primary)';
+                    else bg = 'var(--primary)';
+                    const opacity = rate <= 0.25 ? 0.3 : rate <= 0.5 ? 0.55 : rate <= 0.75 ? 0.8 : 1;
+                    html += `<div class="heatmap-cell" style="background:${bg};opacity:${opacity}" title="${ds}: ${Math.round(rate*100)}%"></div>`;
+                } else {
+                    html += `<div class="heatmap-cell" style="background:var(--border)" title="${ds}: 无数据"></div>`;
+                }
+                hasAny = true;
+                d += 7; // 跳到下周同一天
+            }
+            if (!hasAny) html += '<div class="heatmap-cell" style="background:transparent"></div>';
+            html += '</div>';
+        }
+        html += '</div>';
+    });
+
+    // 用更简洁的方式渲染
+    container.innerHTML = renderHeatmapSimple(data, year);
+}
+
+function renderHeatmapSimple(data, year) {
+    const monthLabels = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+    let html = '<div style="min-width:700px">';
+    // 月份标签
+    html += '<div style="display:flex;gap:2px;margin-bottom:4px;margin-left:24px">';
+    // 计算每个月的列数
+    const firstDay = new Date(year, 0, 1).getDay();
+    let colCount = firstDay;
+    let monthCols = [];
+    let currentMonth = -1;
+    for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(year, m+1, 0).getDate();
+        let startDay = new Date(year, m, 1).getDay();
+        let endDay = new Date(year, m, daysInMonth).getDay();
+        let cols = Math.ceil((daysInMonth + startDay) / 7);
+        monthCols.push(cols);
+    }
+    monthLabels.forEach((m, i) => {
+        html += `<div style="font-size:10px;color:var(--text-secondary);width:${monthCols[i]*14}px;text-align:center">${m}月</div>`;
+    });
+    html += '</div>';
+
+    // 整体网格
+    html += '<div style="display:flex;gap:2px">';
+    // 星期标签
+    html += '<div style="display:flex;flex-direction:column;gap:2px;margin-right:4px">';
+    ['日','一','二','三','四','五','六'].forEach((d, i) => {
+        html += `<div style="font-size:10px;color:var(--text-secondary);height:12px;line-height:12px;width:20px">${i%2===1?d:''}</div>`;
+    });
+    html += '</div>';
+
+    // 12个月
+    for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(year, m+1, 0).getDate();
+        const startDay = new Date(year, m, 1).getDay();
+        const weeks = Math.ceil((daysInMonth + startDay) / 7);
+
+        for (let w = 0; w < weeks; w++) {
+            html += '<div style="display:flex;flex-direction:column;gap:2px">';
+            for (let d = 0; d < 7; d++) {
+                const dayNum = w * 7 + d - startDay + 1;
+                if (dayNum < 1 || dayNum > daysInMonth) {
+                    html += '<div class="heatmap-cell" style="background:transparent"></div>';
+                } else {
+                    const ds = formatDate(new Date(year, m, dayNum));
+                    const rate = data[ds] || 0;
+                    let opacity = 0;
+                    if (rate > 0) opacity = rate <= 0.25 ? 0.3 : rate <= 0.5 ? 0.5 : rate <= 0.75 ? 0.75 : 1;
+                    html += `<div class="heatmap-cell" style="background:${rate > 0 ? 'var(--primary)' : 'var(--border)'};opacity:${rate > 0 ? opacity : 1}" title="${ds}: ${Math.round(rate*100)}%"></div>`;
+                }
+            }
+            html += '</div>';
+        }
+        // 月份间隔
+        if (m < 11) html += '<div style="width:4px"></div>';
+    }
+    html += '</div></div>';
+    return html;
+}
+
+function renderCharts() {
+    // 习惯完成率柱状图
+    const barEl = $('#habit-bar-chart');
+    if (barEl && state.habits.filter(h => h.isActive).length > 0) {
+        const chart = echarts.init(barEl);
+        const habits = state.habits.filter(h => h.isActive);
+        chart.setOption({
+            grid: { left: '8%', right: '5%', top: '5%', bottom: '15%' },
+            tooltip: { trigger: 'axis', formatter: '{b}: {c}%' },
+            xAxis: { type: 'category', data: habits.map(h => h.name), axisLabel: { fontSize: 11, color: getComputedStyle(document.body).getPropertyValue('--text-secondary') }, axisLine: { lineStyle: { color: getComputedStyle(document.body).getPropertyValue('--border') } } },
+            yAxis: { type: 'value', max: 100, axisLabel: { fontSize: 10, color: getComputedStyle(document.body).getPropertyValue('--text-secondary'), formatter: '{value}%' }, splitLine: { lineStyle: { color: getComputedStyle(document.body).getPropertyValue('--border') } } },
+            series: [{ type: 'bar', data: habits.map(h => ({ value: api.getHabitCompletionRate(h.id, 30), itemStyle: { color: h.color, borderRadius: [4,4,0,0] } })), barWidth: '50%' }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    // 心情趋势折线图
+    const moodEl = $('#mood-line-chart');
+    if (moodEl) {
+        const chart = echarts.init(moodEl);
+        const trend = api.getMoodTrend(7);
+        chart.setOption({
+            grid: { left: '8%', right: '5%', top: '5%', bottom: '15%' },
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: trend.map(t => t.label), axisLabel: { fontSize: 11, color: getComputedStyle(document.body).getPropertyValue('--text-secondary') }, axisLine: { lineStyle: { color: getComputedStyle(document.body).getPropertyValue('--border') } } },
+            yAxis: { type: 'value', min: 0, max: 5, axisLabel: { fontSize: 10, color: getComputedStyle(document.body).getPropertyValue('--text-secondary') }, splitLine: { lineStyle: { color: getComputedStyle(document.body).getPropertyValue('--border') } } },
+            series: [{ type: 'line', data: trend.map(t => t.mood), smooth: true, symbolSize: 8, lineStyle: { color: '#FF6B35', width: 3 }, itemStyle: { color: '#FF6B35' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(255,107,53,0.3)' }, { offset: 1, color: 'rgba(255,107,53,0)' }] } } }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    // 时间分配饼图
+    const pieEl = $('#time-pie-chart');
+    if (pieEl) {
+        const stats = api.getTimeStatsByDate();
+        const chart = echarts.init(pieEl);
+        const colors = Object.keys(stats).map(t => getTagColor(t));
+        chart.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c}分钟 ({d}%)' },
+            series: [{
+                type: 'pie', radius: ['35%','65%'], center: ['50%','50%'],
+                data: Object.entries(stats).map(([tag, min]) => ({ name: tag, value: min })),
+                label: { fontSize: 11, color: getComputedStyle(document.body).getPropertyValue('--text') },
+                itemStyle: { borderColor: getComputedStyle(document.body).getPropertyValue('--card'), borderWidth: 2 }
+            }],
+            color: colors
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+}
+
+// ===================== 目标管理页 =====================
+function renderGoals() {
+    return `
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold" style="color:var(--text)">目标管理</h1>
+                <p class="text-sm mt-1" style="color:var(--text-secondary)">设定长期目标，追踪进度</p>
+            </div>
+            <button class="btn btn-primary" onclick="openGoalModal()">+ 新建目标</button>
+        </div>
+
+        <div class="space-y-4">
+            ${state.goals.length > 0 ? state.goals.map(g => {
+                const totalCheckins = state.checkins.length;
+                const progress = Math.min(Math.round(totalCheckins / g.targetValue * 100), 100);
+                const daysLeft = Math.ceil((new Date(g.deadline) - new Date()) / 86400000);
+                return `
+                    <div class="card p-5">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h3 class="font-bold text-base" style="color:var(--text)">${g.title}</h3>
+                                <p class="text-sm mt-1" style="color:var(--text-secondary)">${g.description || ''}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="text-xs" style="color:var(--text-secondary)" onclick="editGoal('${g.id}')">编辑</button>
+                                <button class="text-xs" style="color:var(--danger)" onclick="deleteGoal('${g.id}')">删除</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between text-xs mb-1" style="color:var(--text-secondary)">
+                                    <span>进度 ${totalCheckins} / ${g.targetValue}</span>
+                                    <span>${progress}%</span>
+                                </div>
+                                <div class="progress-bar"><div class="progress-bar-fill" style="width:${progress}%;background:var(--primary)"></div></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs" style="color:var(--text-secondary)">
+                            <span>类型: ${g.type === 'yearly' ? '年度' : g.type === 'monthly' ? '月度' : '自定义'}</span>
+                            <span>截止: ${g.deadline}</span>
+                            <span style="color:${daysLeft < 30 ? 'var(--danger)' : 'var(--text-secondary)'}">还剩 ${daysLeft} 天</span>
+                        </div>
+                    </div>
+                `;
+            }).join('') : `
+                <div class="card p-12 text-center">
+                    <p class="text-5xl mb-4">🎯</p>
+                    <p class="text-sm mb-4" style="color:var(--text-secondary)">还没有设定目标</p>
+                    <button class="btn btn-primary" onclick="openGoalModal()">设定第一个目标</button>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+let editingGoalId = null;
+function openGoalModal(goalId = null) {
+    editingGoalId = goalId;
+    const g = goalId ? state.goals.find(g => g.id === goalId) : null;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'goalModal';
+    modal.innerHTML = `
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 class="font-bold text-lg mb-4" style="color:var(--text)">${goalId ? '编辑目标' : '新建目标'}</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">目标标题</label>
+                    <input id="goal-title" placeholder="如：2026年阅读50本书" value="${g ? g.title : ''}"/>
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">描述</label>
+                    <textarea id="goal-desc" rows="2" placeholder="目标详细描述..." style="width:100%">${g ? g.description || '' : ''}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">类型</label>
+                        <select id="goal-type">
+                            <option value="yearly" ${g && g.type === 'yearly' ? 'selected' : ''}>年度</option>
+                            <option value="monthly" ${g && g.type === 'monthly' ? 'selected' : ''}>月度</option>
+                            <option value="custom" ${g && g.type === 'custom' ? 'selected' : ''}>自定义</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">目标值(打卡次数)</label>
+                        <input id="goal-target" type="number" placeholder="365" value="${g ? g.targetValue : ''}"/>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">截止日期</label>
+                    <input id="goal-deadline" type="date" value="${g ? g.deadline : '2026-12-31'}"/>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn btn-primary flex-1" onclick="saveGoalFromModal()">保存</button>
+                <button class="btn btn-secondary flex-1" onclick="closeGoalModal()">取消</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+function closeGoalModal() { $('#goalModal').remove(); }
+function saveGoalFromModal() {
+    const title = $('#goal-title').value.trim();
+    if (!title) { showToast('请输入标题'); return; }
+    const description = $('#goal-desc').value.trim();
+    const type = $('#goal-type').value;
+    const targetValue = parseInt($('#goal-target').value) || 365;
+    const deadline = $('#goal-deadline').value || '2026-12-31';
+    if (editingGoalId) {
+        const g = state.goals.find(g => g.id === editingGoalId);
+        if (g) Object.assign(g, { title, description, type, targetValue, deadline });
+    } else {
+        state.goals.push({ id: `g${Date.now()}`, title, description, type, targetValue, deadline, createdAt: todayStr() });
+    }
+    saveGoals();
+    closeGoalModal();
+    render();
+    showToast('已保存');
+}
+function editGoal(id) { openGoalModal(id); }
+function deleteGoal(id) {
+    if (!confirm('确定删除此目标？')) return;
+    state.goals = state.goals.filter(g => g.id !== id);
+    saveGoals();
+    render();
+    showToast('已删除');
+}
+
+// ===================== 设置页 =====================
+function renderSettings() {
+    return `
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold" style="color:var(--text)">设置</h1>
+            <p class="text-sm mt-1" style="color:var(--text-secondary)">个性化你的自律系统</p>
+        </div>
+
+        <div class="space-y-4 max-w-2xl">
+            <!-- 用户名 -->
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">个人设置</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">昵称</label>
+                        <input id="settings-username" placeholder="你的名字" value="${state.settings.userName || ''}" onblur="saveUserName()"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主题切换 -->
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">外观</h3>
+                <div class="flex gap-3">
+                    <button class="btn ${state.settings.theme === 'light' ? 'btn-primary' : 'btn-secondary'} flex-1" onclick="setTheme('light')">☀️ 浅色</button>
+                    <button class="btn ${state.settings.theme === 'dark' ? 'btn-primary' : 'btn-secondary'} flex-1" onclick="setTheme('dark')">🌙 深色</button>
+                </div>
+            </div>
+
+            <!-- 数据管理 -->
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">数据管理</h3>
+                <div class="space-y-3">
+                    <button class="btn btn-secondary w-full" onclick="exportData()">📤 导出数据备份</button>
+                    <div>
+                        <label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">导入数据</label>
+                        <input type="file" id="import-file" accept=".json" onchange="importData(event)"/>
+                    </div>
+                    <button class="btn btn-danger w-full" onclick="clearAllData()">🗑️ 清空所有数据</button>
+                </div>
+            </div>
+
+            <!-- 关于 -->
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">关于</h3>
+                <div class="space-y-2 text-sm" style="color:var(--text-secondary)">
+                    <p>🌿 自律追踪 Discipline Tracker</p>
+                    <p>版本 1.0.0 · 纯前端应用</p>
+                    <p>所有数据存储在浏览器本地，不会上传到服务器。</p>
+                    <p>建议定期导出数据备份，以免清除浏览器缓存时丢失。</p>
+                </div>
+            </div>
+
+            <!-- 数据统计 -->
+            <div class="card p-5">
+                <h3 class="font-bold text-sm mb-3" style="color:var(--text)">数据概览</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <div class="text-2xl font-bold" style="color:var(--primary)">${state.habits.filter(h => h.isActive).length}</div>
+                        <div class="text-xs" style="color:var(--text-secondary)">活跃习惯</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold" style="color:var(--accent)">${state.checkins.length}</div>
+                        <div class="text-xs" style="color:var(--text-secondary)">总打卡数</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold" style="color:var(--warning)">${state.records.length}</div>
+                        <div class="text-xs" style="color:var(--text-secondary)">每日记录</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold" style="color:var(--success)">${state.journals.length}</div>
+                        <div class="text-xs" style="color:var(--text-secondary)">日记篇数</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function saveUserName() {
+    state.settings.userName = $('#settings-username').value.trim();
+    saveSettings();
+    showToast('已保存');
+}
+function setTheme(theme) {
+    state.settings.theme = theme;
+    saveSettings();
+    applyTheme();
+    render();
+}
+function exportData() {
+    const data = api.exportAllData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `discipline-backup-${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('数据已导出');
+}
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            api.importAllData(e.target.result);
+            state.habits = loadData(KEYS.HABITS);
+            state.checkins = loadData(KEYS.CHECKINS);
+            state.records = loadData(KEYS.RECORDS);
+            state.journals = loadData(KEYS.JOURNALS);
+            state.goals = loadData(KEYS.GOALS);
+            showToast('数据导入成功');
+            render();
+        } catch (err) {
+            showToast('导入失败：文件格式错误');
+        }
+    };
+    reader.readAsText(file);
+}
+function clearAllData() {
+    if (!confirm('⚠️ 确定清空所有数据？此操作不可恢复！\n\n建议先导出备份。')) return;
+    if (!confirm('再次确认：真的要清空所有数据吗？')) return;
+    Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    location.reload();
+}
+
+// ===================== 事件绑定 & 初始化 =====================
+function bindNavEvents() {
+    // 侧边栏点击自动关闭（移动端）
+    $$('.nav-item').forEach(item => {
+        item.addEventListener('click', () => closeSidebar());
+    });
+}
+
+function afterRender() {
+    // 渲染热力图和图表
+    if (state.currentView === 'stats') {
+        renderHeatmap();
+        renderCharts();
+    }
+    if (state.currentView === 'records') {
+        renderCharts();
+    }
+    // 初始化日记页面的变量
+    if (state.currentView === 'journal') {
+        const journal = api.getJournalByDate();
+        currentMood = journal ? (journal.mood || 0) : 0;
+        journalTags = journal && journal.tags ? [...journal.tags] : [];
+    }
+}
+
+// ===================== 启动 =====================
+initDefaultData();
+applyTheme();
+render();
+
+// 每日定时提醒（浏览器通知）
+if ('Notification' in window && Notification.permission === 'default') {
+    // 不自动请求，用户在设置中可以手动开启
+}
+</script>
+</body>
+</html>
