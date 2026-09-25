@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 星云导航 - 探索数字宇宙</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a28;
+            --border: #1e1e30;
+            --primary: #00d4ff;
+            --secondary: #7c3aed;
+            --accent: #f72585;
+            --text: #e0e0e8;
+            --text-secondary: #8888a0;
+            --glow: 0 0 20px rgba(0, 212, 255, 0.15);
+            --glow-strong: 0 0 40px rgba(124, 58, 237, 0.3);
+            --radius: 12px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* 动态背景粒子 */
+        .particle-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* 网格背景 */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(30, 30, 60, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 30, 60, 0.3) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+            mask-image: radial-gradient(ellipse at 50% 0%, black 40%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black 40%, transparent 70%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            padding: 40px 0 20px;
+            position: relative;
+        }
+        .header-logo {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.5));
+        }
+        .header-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        .header-glow {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 300px;
+            background: radial-gradient(ellipse, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* 搜索栏 */
+        .search-wrapper {
+            max-width: 700px;
+            margin: 20px auto 30px;
+            position: relative;
+        }
+        .search-container {
+            display: flex;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            overflow: hidden;
+            transition: var(--transition);
+            box-shadow: var(--glow);
+        }
+        .search-container:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.25);
+        }
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 16px 24px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+        }
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+        .search-engine {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+            align-items: center;
+            border-right: 1px solid var(--border);
+        }
+        .engine-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .engine-btn:hover,
+        .engine-btn.active {
+            background: rgba(0, 212, 255, 0.15);
+            color: var(--primary);
+        }
+        .search-submit {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: #fff;
+            padding: 0 28px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: var(--transition);
+            letter-spacing: 1px;
+        }
+        .search-submit:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.3);
+        }
+
+        /* 快捷标签 */
+        .quick-tags {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+        .quick-tag {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+        .quick-tag:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: var(--glow);
+        }
+        .quick-tag.hot {
+            border-color: var(--accent);
+            color: var(--accent);
+            animation: pulse-tag 2s infinite;
+        }
+        @keyframes pulse-tag {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(247, 37, 133, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(247, 37, 133, 0.5);
+            }
+        }
+
+        /* 分类导航 */
+        .category-section {
+            margin-bottom: 40px;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .category-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .category-icon.video {
+            background: rgba(247, 37, 133, 0.2);
+        }
+        .category-icon.search {
+            background: rgba(0, 212, 255, 0.2);
+        }
+        .category-icon.software {
+            background: rgba(124, 58, 237, 0.2);
+        }
+        .category-icon.reading {
+            background: rgba(245, 158, 11, 0.2);
+        }
+        .category-icon.music {
+            background: rgba(16, 185, 129, 0.2);
+        }
+        .category-icon.tools {
+            background: rgba(59, 130, 246, 0.2);
+        }
+        .category-icon.study {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        .category-icon.office {
+            background: rgba(168, 85, 247, 0.2);
+        }
+        .category-icon.common {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .category-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+        .category-subtabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        .subtab {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 4px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .subtab:hover,
+        .subtab.active {
+            background: rgba(0, 212, 255, 0.12);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* 卡片网格 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(0, 212, 255, 0.03) 100%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), var(--glow);
+            background: var(--bg-card-hover);
+        }
+        .card:hover::before {
+            opacity: 1;
+        }
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.03);
+            position: relative;
+            z-index: 1;
+        }
+        .card-info {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            z-index: 1;
+        }
+        .card-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-arrow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--border);
+            font-size: 14px;
+            transition: var(--transition);
+            z-index: 1;
+        }
+        .card:hover .card-arrow {
+            color: var(--primary);
+            right: 8px;
+        }
+
+        /* 酷站推荐卡片（更大） */
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+            margin-bottom: 40px;
+        }
+        .featured-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+        }
+        .featured-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 212, 255, 0.15);
+        }
+        .featured-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .featured-card .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(0, 212, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .featured-card .card-name {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .featured-card .card-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .featured-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--secondary));
+            color: #fff;
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            transition: var(--transition);
+        }
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+        .footer-copy {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .header-logo {
+                font-size: 32px;
+            }
+            .card-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 8px;
+            }
+            .featured-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            .card {
+                padding: 12px;
+            }
+            .search-engine {
+                display: none;
+            }
+            .search-input {
+                padding: 14px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 动态粒子背景 -->
+    <div class="particle-bg" id="particles"></div>
+    <div class="grid-bg"></div>
+
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-glow"></div>
+            <div class="header-logo">⚡ 星云导航</div>
+            <div class="header-subtitle">Explore the Digital Nebula</div>
+        </header>
+
+        <!-- 搜索栏 -->
+        <div class="search-wrapper">
+            <div class="search-container">
+                <div class="search-engine">
+                    <button class="engine-btn active" data-engine="bing">Bing</button>
+                    <button class="engine-btn" data-engine="google">Google</button>
+                    <button class="engine-btn" data-engine="baidu">百度</button>
+                    <button class="engine-btn" data-engine="ai">🔎AI搜索</button>
+                </div>
+                <input type="text" class="search-input" placeholder="搜索你想要的资源..." id="searchInput" onkeydown="if(event.key==='Enter')doSearch()">
+                <button class="search-submit" onclick="doSearch()">搜索</button>
+            </div>
+        </div>
+
+        <!-- 快捷标签 -->
+        <div class="quick-tags">
+            <a href="https://adzhp.cc/favorites/shipinzhibo" class="quick-tag hot">🔥 视频直播</a>
+            <a href="https://www.panlegepan.com/?from=ada" class="quick-tag">💾 网盘搜索</a>
+            <a href="https://zyscj.com/zy/soft/blogforum.html" class="quick-tag">💻 软件资源</a>
+            <a href="https://zyscj.com/zy/book/zlibrary.html" class="quick-tag">📚 Z-Library</a>
+            <a href="https://zyscj.com/zy/soft/crackgame.html" class="quick-tag">🎮 免费游戏</a>
+            <a href="https://ka.huojukj.com/?u=666999" class="quick-tag">📱 超低价流量卡</a>
+            <a href="https://metaso.cn/?s=adzh0" class="quick-tag">🤖 秘塔AI搜索</a>
+        </div>
+
+        <!-- 酷站推荐 -->
+        <section class="category-section">
+            <div class="category-header">
+                <span style="font-size:24px;">⭐</span>
+                <span class="category-title">酷站推荐</span>
+            </div>
+            <div class="featured-grid">
+                <a href="https://w5mv.com/?utm_source=WZYY-aidazahuopu" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">🎬</div>
+                        <span class="card-name">555-看电影</span>
+                    </div>
+                    <div class="card-desc">海量影视资源在线观看，高清流畅</div>
+                    <span class="featured-badge">推荐</span>
+                </a>
+                <a href="https://kanju3.com/?utm_source=WZ-adzhp" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">🤖</div>
+                        <span class="card-name">看剧AI</span>
+                    </div>
+                    <div class="card-desc">AI驱动的智能观影体验</div>
+                </a>
+                <a href="https://fdzys.net" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">🍿</div>
+                        <span class="card-name">饭搭子影视</span>
+                    </div>
+                    <div class="card-desc">边看边聊，社交观影新体验</div>
+                </a>
+                <a href="https://metaso.cn/?s=adzh0" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">🔍</div>
+                        <span class="card-name">秘塔AI搜索</span>
+                    </div>
+                    <div class="card-desc">免费AI搜索引擎，智能问答</div>
+                    <span class="featured-badge">热门</span>
+                </a>
+                <a href="https://suno.songin.ai/" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">🎵</div>
+                        <span class="card-name">Songin AI</span>
+                    </div>
+                    <div class="card-desc">AI音乐生成，颂音创作平台</div>
+                </a>
+                <a href="https://www.aippt.cn/?utm_type=Navweb&utm_source=aida" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">📊</div>
+                        <span class="card-name">AI生成PPT</span>
+                    </div>
+                    <div class="card-desc">一键智能生成精美演示文稿</div>
+                    <span class="featured-badge">AI</span>
+                </a>
+                <a href="https://www.katuai.cn/?from=adzhp" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">💬</div>
+                        <span class="card-name">免翻GPT</span>
+                    </div>
+                    <div class="card-desc">无需梯子，直接使用ChatGPT</div>
+                </a>
+                <a href="https://www.jiaotuai.cn/?ref=adzhp" class="featured-card" target="_blank">
+                    <div class="card-header">
+                        <div class="card-icon">🎨</div>
+                        <span class="card-name">NanoBanana</span>
+                    </div>
+                    <div class="card-desc">AI图像生成中文站</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 常用站点 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon common">🏠</div>
+                <span class="category-title">常用站点</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">阅读</button>
+                    <button class="subtab">购物</button>
+                    <button class="subtab">直播</button>
+                    <button class="subtab">翻译</button>
+                    <button class="subtab">网盘</button>
+                    <button class="subtab">邮箱</button>
+                    <button class="subtab">视频</button>
+                    <button class="subtab">出行</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://weibo.com/" class="card" target="_blank"><div class="card-icon">📰</div><div class="card-info"><div class="card-name">新浪微博</div><div class="card-desc">社交媒体平台</div></div></a>
+                <a href="https://www.zhihu.com/" class="card" target="_blank"><div class="card-icon">❓</div><div class="card-info"><div class="card-name">知乎</div><div class="card-desc">问答社区</div></div></a>
+                <a href="https://tieba.baidu.com/" class="card" target="_blank"><div class="card-icon">💬</div><div class="card-info"><div class="card-name">百度贴吧</div><div class="card-desc">兴趣社区</div></div></a>
+                <a href="https://www.douban.com/" class="card" target="_blank"><div class="card-icon">📖</div><div class="card-info"><div class="card-name">豆瓣</div><div class="card-desc">书影音社区</div></div></a>
+                <a href="https://www.xiaohongshu.com/" class="card" target="_blank"><div class="card-icon">📕</div><div class="card-info"><div class="card-name">小红书</div><div class="card-desc">生活方式平台</div></div></a>
+                <a href="https://web.okjike.com/" class="card" target="_blank"><div class="card-icon">⚡</div><div class="card-info"><div class="card-name">即刻</div><div class="card-desc">兴趣社交</div></div></a>
+                <a href="https://sspai.com/" class="card" target="_blank"><div class="card-icon">🔧</div><div class="card-info"><div class="card-name">少数派</div><div class="card-desc">数字生活指南</div></div></a>
+                <a href="https://bbs.hupu.com/" class="card" target="_blank"><div class="card-icon">🏀</div><div class="card-info"><div class="card-name">虎扑社区</div><div class="card-desc">体育社区</div></div></a>
+                <a href="https://www.izuiyou.com/" class="card" target="_blank"><div class="card-icon">😄</div><div class="card-info"><div class="card-name">最右</div><div class="card-desc">搞笑社区</div></div></a>
+                <a href="https://topbook.cc/overview" class="card" target="_blank"><div class="card-icon">📘</div><div class="card-info"><div class="card-name">Topbook</div><div class="card-desc">效率指南</div></div></a>
+                <a href="https://www.jianshu.com/" class="card" target="_blank"><div class="card-icon">✍️</div><div class="card-info"><div class="card-name">简书</div><div class="card-desc">创作社区</div></div></a>
+                <a href="https://post.smzdm.com/" class="card" target="_blank"><div class="card-icon">🛒</div><div class="card-info"><div class="card-name">什么值得买</div><div class="card-desc">消费社区</div></div></a>
+                <a href="https://weread.qq.com/" class="card" target="_blank"><div class="card-icon">📱</div><div class="card-info"><div class="card-name">微信读书</div><div class="card-desc">电子书阅读</div></div></a>
+                <a href="http://jandan.net/" class="card" target="_blank"><div class="card-icon">🥚</div><div class="card-info"><div class="card-name">煎蛋</div><div class="card-desc">趣味资讯</div></div></a>
+                <a href="https://36kr.com/" class="card" target="_blank"><div class="card-icon">📈</div><div class="card-info"><div class="card-name">36氪</div><div class="card-desc">科技资讯</div></div></a>
+                <a href="https://linkqiu.com/" class="card" target="_blank"><div class="card-icon">🔗</div><div class="card-info"><div class="card-name">链接星球</div><div class="card-desc">网址发布页</div></div></a>
+            </div>
+        </section>
+
+        <!-- 视频直播 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon video">🎥</div>
+                <span class="category-title">视频直播</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">综合</button>
+                    <button class="subtab">海外</button>
+                    <button class="subtab">下载</button>
+                    <button class="subtab">动漫</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="http://www.yxxq25.cc" class="card" target="_blank"><div class="card-icon">🌍</div><div class="card-info"><div class="card-name">映像星球</div></div></a>
+                <a href="https://kanju3.com/?utm_source=WZ-adzhp" class="card" target="_blank"><div class="card-icon">🤖</div><div class="card-info"><div class="card-name">看剧AI</div></div></a>
+                <a href="https://fdzys.net" class="card" target="_blank"><div class="card-icon">🍽️</div><div class="card-info"><div class="card-name">饭搭子影视</div></div></a>
+                <a href="https://v.xl01.eu.cc" class="card" target="_blank"><div class="card-icon">❄️</div><div class="card-info"><div class="card-name">雪落影视</div></div></a>
+                <a href="https://www.bttwo.vip/" class="card" target="_blank"><div class="card-icon">🎬</div><div class="card-info"><div class="card-name">两个BT(4K)</div></div></a>
+                <a href="https://cz01.tv/" class="card" target="_blank"><div class="card-icon">🏭</div><div class="card-info"><div class="card-name">厂长资源</div></div></a>
+                <a href="https://gaze.red/" class="card" target="_blank"><div class="card-icon">👁️</div><div class="card-info"><div class="card-name">注视影视</div></div></a>
+                <a href="https://yunduoyingshi.com/" class="card" target="_blank"><div class="card-icon">☁️</div><div class="card-info"><div class="card-name">云朵影视</div></div></a>
+                <a href="https://auete.asia/" class="card" target="_blank"><div class="card-icon">🎞️</div><div class="card-info"><div class="card-name">AUETE影视</div></div></a>
+                <a href="https://juok3.top/" class="card" target="_blank"><div class="card-icon">✅</div><div class="card-info"><div class="card-name">剧OK</div></div></a>
+                <a href="https://www.sotvla.cc/" class="card" target="_blank"><div class="card-icon">📺</div><div class="card-info"><div class="card-name">SOTVLA</div></div></a>
+                <a href="https://www.ylsp.lv/" class="card" target="_blank"><div class="card-icon">🎉</div><div class="card-info"><div class="card-name">永乐视频</div></div></a>
+                <a href="https://codepen.io/KungfuF-Loma/full/GgNKJOM" class="card" target="_blank"><div class="card-icon">😎</div><div class="card-info"><div class="card-name">看片狂人</div></div></a>
+                <a href="http://dyrs.me" class="card" target="_blank"><div class="card-icon">🎭</div><div class="card-info"><div class="card-name">电影人生</div></div></a>
+                <a href="https://link3.cc/jqqzx" class="card" target="_blank"><div class="card-icon">🔄</div><div class="card-info"><div class="card-name">剧圈圈</div></div></a>
+                <a href="https://hnytxj.com/" class="card" target="_blank"><div class="card-icon">🥇</div><div class="card-info"><div class="card-name">金牌影院</div></div></a>
+                <a href="https://monkey-flix.com/" class="card" target="_blank"><div class="card-icon">🐵</div><div class="card-info"><div class="card-name">猴影工坊</div></div></a>
+                <a href="https://www.mtyy1.cc/" class="card" target="_blank"><div class="card-icon">🌾</div><div class="card-info"><div class="card-name">麦田影院</div></div></a>
+                <a href="https://soupian.plus/" class="card" target="_blank"><div class="card-icon">🔎</div><div class="card-info"><div class="card-name">搜片.com</div></div></a>
+                <a href="https://4kvm.site/" class="card" target="_blank"><div class="card-icon">4K</div><div class="card-info"><div class="card-name">4K影视</div></div></a>
+            </div>
+        </section>
+
+        <!-- 资源搜索 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon search">🔍</div>
+                <span class="category-title">资源搜索</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">网盘搜索</button>
+                    <button class="subtab">磁力搜索</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://www.panlegepan.com/?from=ada" class="card" target="_blank"><div class="card-icon">💿</div><div class="card-info"><div class="card-name">盘了个盘</div></div></a>
+                <a href="https://www.xn--ykq321c.com/" class="card" target="_blank"><div class="card-icon">🎬</div><div class="card-info"><div class="card-name">观影GYING</div></div></a>
+                <a href="https://zyscj.com/zy/search/diskresource.html" class="card" target="_blank"><div class="card-icon">📦</div><div class="card-info"><div class="card-name">各大网盘搜索</div></div></a>
+                <a href="https://www.aipan.me/" class="card" target="_blank"><div class="card-icon">🤖</div><div class="card-info"><div class="card-name">AIPAN搜索</div></div></a>
+                <a href="https://www.birdiesearch.com/i/IZ3721531" class="card" target="_blank"><div class="card-icon">🐦</div><div class="card-info"><div class="card-name">小鸟搜索</div></div></a>
+                <a href="https://yiso.fun/" class="card" target="_blank"><div class="card-icon">🔎</div><div class="card-info"><div class="card-name">易搜</div></div></a>
+                <a href="https://www.yunso.net/" class="card" target="_blank"><div class="card-icon">☁️</div><div class="card-info"><div class="card-name">小云搜索</div></div></a>
+                <a href="https://aipanso.com/" class="card" target="_blank"><div class="card-icon">❤️</div><div class="card-info"><div class="card-name">爱盘搜</div></div></a>
+                <a href="https://www.pansearch.me/" class="card" target="_blank"><div class="card-icon">🌐</div><div class="card-info"><div class="card-name">PanSearch</div></div></a>
+                <a href="https://panyq.com/" class="card" target="_blank"><div class="card-icon">👥</div><div class="card-info"><div class="card-name">盘友圈</div></div></a>
+                <a href="https://www.kuakuaso.com/" class="card" target="_blank"><div class="card-icon">👍</div><div class="card-info"><div class="card-name">夸夸盘搜</div></div></a>
+                <a href="https://www.pikasoo.top/" class="card" target="_blank"><div class="card-icon">⚡</div><div class="card-info"><div class="card-name">皮卡搜</div></div></a>
+                <a href="https://www.cuppaso.com/" class="card" target="_blank"><div class="card-icon">☕</div><div class="card-info"><div class="card-name">咔帕搜索</div></div></a>
+                <a href="https://www.nmme.one/" class="card" target="_blank"><div class="card-icon">🍊</div><div class="card-info"><div class="card-name">橘子盘搜</div></div></a>
+                <a href="https://www.lingfengyun.com/" class="card" target="_blank"><div class="card-icon">🌪️</div><div class="card-info"><div class="card-name">凌风云搜索</div></div></a>
+                <a href="http://www.dalipan.xyz/" class="card" target="_blank"><div class="card-icon">💪</div><div class="card-info"><div class="card-name">大力盘</div></div></a>
+            </div>
+        </section>
+
+        <!-- 软件游戏 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon software">💻</div>
+                <span class="category-title">软件游戏</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">综合</button>
+                    <button class="subtab">安卓</button>
+                    <button class="subtab">苹果</button>
+                    <button class="subtab">游戏</button>
+                    <button class="subtab">浏览器</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://zyscj.com/zy/soft/blogforum.html" class="card" target="_blank"><div class="card-icon">📝</div><div class="card-info"><div class="card-name">软件分享与博客</div></div></a>
+                <a href="https://zyscj.com/zy/soft/winsoft.html" class="card" target="_blank"><div class="card-icon">🪟</div><div class="card-info"><div class="card-name">常用Win软件</div></div></a>
+                <a href="https://www.52pojie.cn/" class="card" target="_blank"><div class="card-icon">🔓</div><div class="card-info"><div class="card-name">吾爱破解</div></div></a>
+                <a href="https://www.423down.com/" class="card" target="_blank"><div class="card-icon">⬇️</div><div class="card-info"><div class="card-name">423Down</div></div></a>
+                <a href="https://downloadlynet.ir/" class="card" target="_blank"><div class="card-icon">🌍</div><div class="card-info"><div class="card-name">Downloadly</div></div></a>
+                <a href="https://www.appinn.com/" class="card" target="_blank"><div class="card-icon">💎</div><div class="card-info"><div class="card-name">小众软件</div></div></a>
+                <a href="https://www.xibuluo.com/" class="card" target="_blank"><div class="card-icon">🏕️</div><div class="card-info"><div class="card-name">西部落</div></div></a>
+                <a href="https://www.yxssp.com/" class="card" target="_blank"><div class="card-icon">👽</div><div class="card-info"><div class="card-name">异星软件空间</div></div></a>
+                <a href="https://apphot.cc/" class="card" target="_blank"><div class="card-icon">🔥</div><div class="card-info"><div class="card-name">APP热</div></div></a>
+                <a href="https://www.ghxi.com/" class="card" target="_blank"><div class="card-icon">🥜</div><div class="card-info"><div class="card-name">果核剥壳</div></div></a>
+                <a href="https://www.tenlonstudio.com/" class="card" target="_blank"><div class="card-icon">🐉</div><div class="card-info"><div class="card-name">腾龙工作室</div></div></a>
+                <a href="https://xd.x6d.com/html/23.html" class="card" target="_blank"><div class="card-icon">🔪</div><div class="card-info"><div class="card-name">小刀娱乐网</div></div></a>
+                <a href="https://www.yxzhi.com/" class="card" target="_blank"><div class="card-icon">🦆</div><div class="card-info"><div class="card-name">鸭先知</div></div></a>
+                <a href="https://masuit.org/" class="card" target="_blank"><div class="card-icon">😴</div><div class="card-info"><div class="card-name">懒得勤快</div></div></a>
+                <a href="https://www.ahhhhfs.com/" class="card" target="_blank"><div class="card-icon">👩</div><div class="card-info"><div class="card-name">A姐分享</div></div></a>
+                <a href="https://www.fy6b.com/" class="card" target="_blank"><div class="card-icon">🍁</div><div class="card-info"><div class="card-name">枫音应用</div></div></a>
+            </div>
+        </section>
+
+        <!-- AI工具 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon tools">🤖</div>
+                <span class="category-title">AI 工具</span>
+            </div>
+            <div class="card-grid">
+                <a href="https://www.aippt.cn/?utm_type=Navweb&utm_source=aida" class="card" target="_blank"><div class="card-icon">📊</div><div class="card-info"><div class="card-name">AI生成PPT</div></div></a>
+                <a href="https://chat.deepseek.com/" class="card" target="_blank"><div class="card-icon">🐋</div><div class="card-info"><div class="card-name">DeepSeek</div></div></a>
+                <a href="https://kimi.moonshot.cn/" class="card" target="_blank"><div class="card-icon">🌙</div><div class="card-info"><div class="card-name">Kimi</div></div></a>
+                <a href="https://qwen.ai" class="card" target="_blank"><div class="card-icon">👽</div><div class="card-info"><div class="card-name">Qwen.ai</div></div></a>
+                <a href="https://chatglm.cn/" class="card" target="_blank"><div class="card-icon">🧠</div><div class="card-info"><div class="card-name">智谱清言</div></div></a>
+                <a href="https://www.doubao.com/chat/" class="card" target="_blank"><div class="card-icon">🫘</div><div class="card-info"><div class="card-name">豆包</div></div></a>
+                <a href="https://chat.openai.com/" class="card" target="_blank"><div class="card-icon">🤖</div><div class="card-info"><div class="card-name">ChatGPT</div></div></a>
+                <a href="https://claude.ai/" class="card" target="_blank"><div class="card-icon">🧾</div><div class="card-info"><div class="card-name">Claude</div></div></a>
+                <a href="https://www.qianwen.com/" class="card" target="_blank"><div class="card-icon">💬</div><div class="card-info"><div class="card-name">通义千问</div></div></a>
+                <a href="https://yiyan.baidu.com/" class="card" target="_blank"><div class="card-icon">📝</div><div class="card-info"><div class="card-name">文心一言</div></div></a>
+                <a href="https://xinghuo.xfyun.cn/desk" class="card" target="_blank"><div class="card-icon">⭐</div><div class="card-info"><div class="card-name">讯飞星火</div></div></a>
+                <a href="https://chat.stepfun.com/" class="card" target="_blank"><div class="card-icon">🪜</div><div class="card-info"><div class="card-name">阶跃AI</div></div></a>
+                <a href="https://poe.com/" class="card" target="_blank"><div class="card-icon">📨</div><div class="card-info"><div class="card-name">POE</div></div></a>
+                <a href="https://ying.baichuan-ai.com/chat" class="card" target="_blank"><div class="card-icon">🌊</div><div class="card-info"><div class="card-name">百川智能</div></div></a>
+                <a href="https://yuanbao.tencent.com/" class="card" target="_blank"><div class="card-icon">💰</div><div class="card-info"><div class="card-name">腾讯元宝</div></div></a>
+                <a href="https://www.jiaotuai.cn/?ref=adzhp" class="card" target="_blank"><div class="card-icon">🍌</div><div class="card-info"><div class="card-name">NanoBanana</div></div></a>
+                <a href="https://grok.com/" class="card" target="_blank"><div class="card-icon">🚀</div><div class="card-info"><div class="card-name">Grok</div></div></a>
+                <a href="https://agent.minimaxi.com/" class="card" target="_blank"><div class="card-icon">🎯</div><div class="card-info"><div class="card-name">MiniMax</div></div></a>
+            </div>
+        </section>
+
+        <!-- 阅读漫画 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon reading">📚</div>
+                <span class="category-title">阅读 & 电子书</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">阅读小说</button>
+                    <button class="subtab">免费漫画</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://zyscj.com/zy/book/zlibrary.html" class="card" target="_blank"><div class="card-icon">📗</div><div class="card-info"><div class="card-name">Z-Library</div></div></a>
+                <a href="https://zyscj.com/zy/book/ebook.html" class="card" target="_blank"><div class="card-icon">📖</div><div class="card-info"><div class="card-name">电子书杂志资源</div></div></a>
+                <a href="https://annas-archive.gl/" class="card" target="_blank"><div class="card-icon">📚</div><div class="card-info"><div class="card-name">安娜的档案</div></div></a>
+                <a href="https://zyscj.com/zy/book/fiction.html" class="card" target="_blank"><div class="card-icon">📕</div><div class="card-info"><div class="card-name">免费网络小说</div></div></a>
+                <a href="https://24hbook.com/" class="card" target="_blank"><div class="card-icon">⏰</div><div class="card-info"><div class="card-name">24小时搜书</div></div></a>
+                <a href="https://book.tstrs.me/" class="card" target="_blank"><div class="card-icon">📚</div><div class="card-info"><div class="card-name">SaltyLeo的书架</div></div></a>
+                <a href="https://findbooks.eu.org/" class="card" target="_blank"><div class="card-icon">🔍</div><div class="card-info"><div class="card-name">找书网</div></div></a>
+                <a href="https://www.feiku6.com/index.html" class="card" target="_blank"><div class="card-icon">📘</div><div class="card-info"><div class="card-name">飞库网</div></div></a>
+                <a href="https://kgbook.com/" class="card" target="_blank"><div class="card-icon">🥒</div><div class="card-info"><div class="card-name">苦瓜书盘</div></div></a>
+                <a href="https://xmsoushu.com/" class="card" target="_blank"><div class="card-icon">🐼</div><div class="card-info"><div class="card-name">熊猫搜索导航</div></div></a>
+                <a href="https://zxcs.zip/" class="card" target="_blank"><div class="card-icon">📦</div><div class="card-info"><div class="card-name">知轩藏书备份</div></div></a>
+                <a href="https://www.shukui.net/" class="card" target="_blank"><div class="card-icon">🌻</div><div class="card-info"><div class="card-name">书葵网</div></div></a>
+                <a href="https://ibooks.org.cn/" class="card" target="_blank"><div class="card-icon">🏠</div><div class="card-info"><div class="card-name">读书小站</div></div></a>
+                <a href="https://www.pdfdrive.com/" class="card" target="_blank"><div class="card-icon">📄</div><div class="card-info"><div class="card-name">PDF Drive</div></div></a>
+                <a href="https://bookfere.com/" class="card" target="_blank"><div class="card-icon">📖</div><div class="card-info"><div class="card-name">书伴</div></div></a>
+            </div>
+        </section>
+
+        <!-- 音乐 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon music">🎵</div>
+                <span class="category-title">音乐动听</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">在线音乐</button>
+                    <button class="subtab">无损音乐</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://zyscj.com/zy/music/musicwebsite.html" class="card" target="_blank"><div class="card-icon">🎧</div><div class="card-info"><div class="card-name">在线音乐资源</div></div></a>
+                <a href="https://zyscj.com/zy/music/musicsoftware.html" class="card" target="_blank"><div class="card-icon">💿</div><div class="card-info"><div class="card-name">音乐软件下载</div></div></a>
+                <a href="https://zyscj.com/zy/music/audiobook.html" class="card" target="_blank"><div class="card-icon">🎙️</div><div class="card-info"><div class="card-name">有声书与电台</div></div></a>
+                <a href="https://zyscj.com/zy/music/whitenoise.html" class="card" target="_blank"><div class="card-icon">🌊</div><div class="card-info"><div class="card-name">白噪音与MV</div></div></a>
+                <a href="http://tool.liumingye.cn/music/" class="card" target="_blank"><div class="card-icon">🎶</div><div class="card-info"><div class="card-name">MyFreeMp3</div></div></a>
+                <a href="https://yym4s.com/" class="card" target="_blank"><div class="card-icon">🪄</div><div class="card-info"><div class="card-name">音乐魔石</div></div></a>
+                <a href="https://xiageba.com/" class="card" target="_blank"><div class="card-icon">⬇️</div><div class="card-info"><div class="card-name">下歌吧</div></div></a>
+                <a href="https://zz123.com/" class="card" target="_blank"><div class="card-icon">🎹</div><div class="card-info"><div class="card-name">zz123</div></div></a>
+                <a href="https://mu-jie.cc/musicBox/" class="card" target="_blank"><div class="card-icon">🎁</div><div class="card-info"><div class="card-name">昔枫音乐盒</div></div></a>
+                <a href="https://www.yinwe.com/" class="card" target="_blank"><div class="card-icon">🎵</div><div class="card-info"><div class="card-name">音微网</div></div></a>
+                <a href="https://www.fangpi.net/" class="card" target="_blank"><div class="card-icon">💨</div><div class="card-info"><div class="card-name">放屁音乐网</div></div></a>
+                <a href="http://www.acgjc.com/" class="card" target="_blank"><div class="card-icon">🎌</div><div class="card-info"><div class="card-name">ACG漫音社</div></div></a>
+            </div>
+        </section>
+
+        <!-- 学习教育 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon study">🎓</div>
+                <span class="category-title">学习教育</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">好好学习</button>
+                    <button class="subtab">文档学术</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://zyscj.com/zy/study/knowledge.html" class="card" target="_blank"><div class="card-icon">💡</div><div class="card-info"><div class="card-name">涨知识+科普</div></div></a>
+                <a href="https://zyscj.com/zy/study/code.html" class="card" target="_blank"><div class="card-icon">💻</div><div class="card-info"><div class="card-name">编程学习索引</div></div></a>
+                <a href="https://zyscj.com/zy/study/english.html" class="card" target="_blank"><div class="card-icon">🇬🇧</div><div class="card-info"><div class="card-name">英语学习相关</div></div></a>
+                <a href="https://zyscj.com/zy/study/onlinecourse.html" class="card" target="_blank"><div class="card-icon">🎥</div><div class="card-info"><div class="card-name">在线课堂与刷课</div></div></a>
+                <a href="https://study.163.com/" class="card" target="_blank"><div class="card-icon">☁️</div><div class="card-info"><div class="card-name">网易云课堂</div></div></a>
+                <a href="https://www.icourse163.org/" class="card" target="_blank"><div class="card-icon">🏛️</div><div class="card-info"><div class="card-name">中国大学MOOC</div></div></a>
+                <a href="https://open.163.com/" class="card" target="_blank"><div class="card-icon">🎬</div><div class="card-info"><div class="card-name">网易公开课</div></div></a>
+                <a href="http://www.gaokao.com/" class="card" target="_blank"><div class="card-icon">📝</div><div class="card-info"><div class="card-name">高考网</div></div></a>
+                <a href="https://www.51zxw.net/" class="card" target="_blank"><div class="card-icon">🖥️</div><div class="card-info"><div class="card-name">我要自学网</div></div></a>
+                <a href="http://erya.mooc.chaoxing.com/" class="card" target="_blank"><div class="card-icon">⭐</div><div class="card-info"><div class="card-name">超星尔雅</div></div></a>
+                <a href="https://www.coursera.org/" class="card" target="_blank"><div class="card-icon">🌍</div><div class="card-info"><div class="card-name">Coursera</div></div></a>
+                <a href="https://www.edx.org/" class="card" target="_blank"><div class="card-icon">🎓</div><div class="card-info"><div class="card-name">EDX</div></div></a>
+                <a href="http://www.icourses.cn/home/" class="card" target="_blank"><div class="card-icon">📚</div><div class="card-info"><div class="card-name">爱课程</div></div></a>
+                <a href="https://next.xuetangx.com/" class="card" target="_blank"><div class="card-icon">🏫</div><div class="card-info"><div class="card-name">学堂在线</div></div></a>
+            </div>
+        </section>
+
+        <!-- 办公素材 -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon office">📐</div>
+                <span class="category-title">办公素材</span>
+                <div class="category-subtabs">
+                    <button class="subtab active">PPT</button>
+                    <button class="subtab">图库</button>
+                    <button class="subtab">壁纸</button>
+                    <button class="subtab">图标</button>
+                    <button class="subtab">字体</button>
+                    <button class="subtab">配色</button>
+                </div>
+            </div>
+            <div class="card-grid">
+                <a href="https://zyscj.com/zy/office/ppt.html" class="card" target="_blank"><div class="card-icon">📊</div><div class="card-info"><div class="card-name">PPT与简历制作</div></div></a>
+                <a href="https://zyscj.com/zy/soft/winefficiency.html" class="card" target="_blank"><div class="card-icon">⚡</div><div class="card-info"><div class="card-name">效率提升工具</div></div></a>
+                <a href="https://zyscj.com/zy/office/video-audio.html" class="card" target="_blank"><div class="card-icon">🎬</div><div class="card-info"><div class="card-name">视频编辑与音效</div></div></a>
+                <a href="http://www.hippter.com/" class="card" target="_blank"><div class="card-icon">🦛</div><div class="card-info"><div class="card-name">HiPPTER</div></div></a>
+                <a href="https://www.officeplus.cn/PPT/template/" class="card" target="_blank"><div class="card-icon">📋</div><div class="card-info"><div class="card-name">OfficePLUS</div></div></a>
+                <a href="http://www.ypppt.com/" class="card" target="_blank"><div class="card-icon">✨</div><div class="card-info"><div class="card-name">优品PPT</div></div></a>
+                <a href="https://www.rapidesign.cn/" class="card" target="_blank"><div class="card-icon">🚀</div><div class="card-info"><div class="card-name">锐普PPT</div></div></a>
+                <a href="https://www.52ppt.com/" class="card" target="_blank"><div class="card-icon">🏠</div><div class="card-info"><div class="card-name">PPT之家</div></div></a>
+                <a href="http://www.51pptmoban.com/" class="card" target="_blank"><div class="card-icon">📑</div><div class="card-info"><div class="card-name">51PPT</div></div></a>
+                <a href="https://www.pptfans.cn/" class="card" target="_blank"><div class="card-icon">🎯</div><div class="card-info"><div class="card-name">pptfans</div></div></a>
+                <a href="http://www.1ppt.com/" class="card" target="_blank"><div class="card-icon">🥇</div><div class="card-info"><div class="card-name">第一PPT</div></div></a>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="https://adzhp.cc/about">关于本站</a>
+                <a href="https://adzhp.cc/comment">留言板</a>
+                <a href="https://adzhp.cc/youqinglianjie">友情链接</a>
+                <a href="https://linkqiu.com/">链接星球</a>
+                <a href="https://adzhp.cc/hotnews/">今日热榜</a>
+                <a href="https://zyscj.com/">资源收藏夹</a>
+            </div>
+            <p class="footer-copy">⭐ 星云导航 - 探索数字宇宙 ✨ | 灵感来源于爱达杂货铺 | 仅供学习参考</p>
+        </footer>
+    </div>
+
+    <script>
+        // 动态粒子背景
+        const particleContainer = document.getElementById('particles');
+        const colors = ['#00d4ff', '#7c3aed', '#f72585', '#00ff88', '#ffaa00', '#ffffff'];
+
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            const size = Math.random() * 3 + 1;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.boxShadow = `0 0 ${size * 3}px ${particle.style.background}`;
+            particle.style.animationDuration = (Math.random() * 8 + 6) + 's';
+            particle.style.animationDelay = Math.random() * 8 + 's';
+            particleContainer.appendChild(particle);
+
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, 15000);
+        }
+
+        setInterval(createParticle, 300);
+        for (let i = 0; i < 40; i++) {
+            setTimeout(createParticle, Math.random() * 5000);
+        }
+
+        // 搜索引擎切换
+        const engineBtns = document.querySelectorAll('.engine-btn');
+        let currentEngine = 'bing';
+
+        engineBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                engineBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentEngine = this.dataset.engine;
+            });
+        });
+
+        function doSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+            let url;
+            switch (currentEngine) {
+                case 'google':
+                    url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                    break;
+                case 'baidu':
+                    url = `https://www.baidu.com/s?wd=${encodeURIComponent(query)}`;
+                    break;
+                case 'ai':
+                    url = `https://metaso.cn/?q=${encodeURIComponent(query)}`;
+                    break;
+                default:
+                    url = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+            }
+            window.open(url, '_blank');
+        }
+
+        // 分类tab切换交互
+        document.querySelectorAll('.subtab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const parent = this.parentElement;
+                parent.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
